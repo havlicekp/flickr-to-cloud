@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Open.OAuth" Version="1.0.0" />
+    <PackageReference Include="Serilog" Version="2.8.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -11,8 +11,8 @@ namespace FlickrToOneDrive.Core.Services
 {
     public class CloudCopyService : ICloudCopyService
     {
-        private readonly IFileSource _source;
-        private readonly IFileDestination _destination;
+        private readonly ICloudFileSystem _source;
+        private readonly ICloudFileSystem _destination;
         private int _sessionId;
         private readonly ILogger _logger;
         private string _destinationPath;
@@ -27,18 +27,24 @@ namespace FlickrToOneDrive.Core.Services
 
         public event Action<int, int, int> CheckingStatusFinishedHandler;
 
-        public CloudCopyService(IFileSource source, IFileDestination destination, ILogger logger)
+        public CloudCopyService(ICloudFileSystemFactory factory, IConfiguration config, ILogger logger)
         {
-            _source = source;
-            _destination = destination;
+            var sourceCloudId = config["config.sourceCloudId"];
+            var destinationCloudId = config["config.destinationCloudId"];
+
+            _source = factory.Create(sourceCloudId);
+            _destination = factory.Create(destinationCloudId);
+
             _logger = logger;
         }
 
-        public IFileDestination Destination => _destination;
+        public ICloudFileSystem Destination => _destination;
 
-        public IFileSource Source => _source;
+        public ICloudFileSystem Source => _source;
 
         public int CreatedSessionId => _sessionId;
+
+        public bool IsAuthorized => _source.IsAuthorized && _destination.IsAuthorized;
 
         public async Task Copy(string destinationPath)
         {

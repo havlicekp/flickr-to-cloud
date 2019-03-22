@@ -16,7 +16,7 @@ using Serilog;
 
 namespace FlickrToOneDrive.OneDrive
 {
-    public class OneDriveFileDestination : IFileDestination, IAuthenticationCallback
+    public class OneDriveFileSystem : ICloudFileSystem, IAuthenticationCallback
     {
         private readonly ILogger _log;
         private readonly string _clientId;
@@ -25,7 +25,11 @@ namespace FlickrToOneDrive.OneDrive
         private readonly string _scope;
         private bool _isAuthorized;
 
-        public OneDriveFileDestination(ILogger log, IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher)
+        public string Name => "OneDrive";
+
+        public bool IsAuthorized => _isAuthorized;
+
+        public OneDriveFileSystem(IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher, ILogger log)
         {
             _log = log;
 
@@ -63,7 +67,6 @@ namespace FlickrToOneDrive.OneDrive
                     {
                         if (response.IsSuccessStatusCode)
                         {
-                            var json = JObject.Parse(await response.Content.ReadAsStringAsync());
                             return response.Headers.Location.ToString();
                         }
                     }
@@ -120,8 +123,10 @@ namespace FlickrToOneDrive.OneDrive
             return Task.FromResult(OneDriveClient.GetRequestUrl(_clientId, _scope, _callbackUrl));
         }
 
-        public string Name => "OneDrive";
+        public Task<File[]> GetFiles()
+        {
+            throw new NotImplementedException();
+        }
 
-        public bool IsAuthorized => _isAuthorized;
     }
 }

@@ -9,5 +9,10 @@
     "callbackUrl": "cloudcopy://onedrive",
     "clientId": "35d507bc-886d-4085-878d-2f3302d34bc5",
     "scope": "User.Read, Files.ReadWrite"
+  },
+  "config": {
+    "sourceCloudId": "flickr",
+    "destinationCloudId": "onedrive" 
   } 
+
 }

@@ -5,24 +5,28 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
 using FlickrToOneDrive.Contracts.Interfaces;
+using FlickrToOneDrive.Contracts.Models;
+using Serilog;
 using File = FlickrToOneDrive.Contracts.File;
 
 namespace FlickrToOneDrive.Flickr
 {
-    public class FlickrFileSource : IFileSource, IAuthenticationCallback
+    public class FlickrFileSystem : ICloudFileSystem, IAuthenticationCallback
     {
         private readonly IConfiguration _config;
+        private readonly ILogger _log;
         private FlickrClient _flickrClient;
         private bool _isAuthorized;
         private readonly string _callbackUrl;
 
-        public FlickrFileSource(IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher)
+        public FlickrFileSystem(IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher, ILogger log)
         {
             _config = config;
+            _log = log;
             callbackDispatcher.Register(this);
             _callbackUrl = _config["flickr.callbackUrl"];
         }
-        
+
         public async Task<File[]> GetFiles()
         {
             var result = new List<File>();
@@ -82,5 +86,16 @@ namespace FlickrToOneDrive.Flickr
                 _isAuthorized = await _flickrClient.Authorize(code);
             }
         }
+
+        public Task<string> UploadFileFromUrl(string path, File file)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<OperationStatus> CheckOperationStatus(string monitorUrl)
+        {
+            throw new NotImplementedException();
+        }
+
     }
 }

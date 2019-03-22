@@ -4,10 +4,9 @@ using FlickrToOneDrive.Contracts;
 using FlickrToOneDrive.Contracts.Interfaces;
 using FlickrToOneDrive.Contracts.Models;
 using FlickrToOneDrive.Core.Services;
-using FlickrToOneDrive.Flickr;
-using FlickrToOneDrive.OneDrive;
 using Moq;
 using MvvmCross;
+using MvvmCross.IoC;
 using MvvmCross.ViewModels;
 
 namespace FlickrToOneDrive.Core
@@ -21,17 +20,16 @@ namespace FlickrToOneDrive.Core
         }
 
         private void InitializeRealClasses()
-        {
-            Mvx.IoCProvider.RegisterSingleton<IFileSource, FlickrFileSource>();
-            Mvx.IoCProvider.RegisterSingleton<IFileDestination, OneDriveFileDestination>();
-            Mvx.IoCProvider.RegisterType<ICloudCopyService, CloudCopyService>();
+        {          
+            Mvx.IoCProvider.RegisterType<ICloudFileSystemFactory, CloudFileSystemFactory>();
+            Mvx.IoCProvider.LazyConstructAndRegisterSingleton<ICloudCopyService, CloudCopyService>();
             Mvx.IoCProvider.RegisterSingleton<IAuthenticationCallbackDispatcher>(new AuthenticationCallbackDispatcher());            
             RegisterCustomAppStart<AppStart>();
         }
 
         private void InitializeMockedClasses()
         {
-            var mockedFlickr = new Mock<IFileSource>();
+            var mockedFlickr = new Mock<ICloudFileSystem>();
             mockedFlickr.Setup(x => x.GetFiles()).Returns(async () =>
             {
                 var files = new File[]
@@ -56,7 +54,7 @@ namespace FlickrToOneDrive.Core
             mockedFlickr.Setup(x => x.Name).Returns("Flickr");
 
 
-            var mockedOneDrive = new Mock<IFileDestination>();
+            var mockedOneDrive = new Mock<ICloudFileSystem>();
             mockedOneDrive.Setup(x => x.UploadFileFromUrl(It.IsAny<string>(), It.IsAny<File>())).Returns(async () =>
             {
                 await Task.Delay(2000);
@@ -72,8 +70,11 @@ namespace FlickrToOneDrive.Core
             mockedOneDrive.Setup(x => x.GetAuthorizeUrl()).Returns(Task.FromResult("about:blank"));
             mockedOneDrive.Setup(x => x.Name).Returns("OneDrive");
 
-            Mvx.IoCProvider.RegisterSingleton<IFileSource>(mockedFlickr.Object);
-            Mvx.IoCProvider.RegisterSingleton<IFileDestination>(mockedOneDrive.Object);
+            var mockedCloudFactory = new Mock<ICloudFileSystemFactory>();
+            mockedCloudFactory.Setup(x => x.Create(It.Is<string>((s) => s == "onedrive"))).Returns(mockedOneDrive.Object);
+            mockedCloudFactory.Setup(x => x.Create(It.Is<string>((s) => s == "flickr"))).Returns(mockedFlickr.Object);
+
+            Mvx.IoCProvider.RegisterSingleton(mockedCloudFactory.Object);
             Mvx.IoCProvider.RegisterSingleton<IAuthenticationCallbackDispatcher>(new AuthenticationCallbackDispatcher());
             Mvx.IoCProvider.RegisterType<ICloudCopyService, CloudCopyService>();
 

@@ -13,21 +13,18 @@ namespace FlickrToOneDrive.Core.ViewModels
     public class LoginViewModel : MvxViewModel
     {
         private readonly IDialogService _dialogService;
-        private readonly IFileSource _source;
-        private readonly IFileDestination _destination;
+        private readonly ICloudCopyService _cloudCopy;
         private readonly ILogger _log;
         private readonly IMvxNavigationService _navigationService;
 
-        public LoginViewModel(IDialogService dialogService, IFileSource source, IFileDestination destination,
-            ILogger log, IMvxNavigationService navigationService)
+        public LoginViewModel(IDialogService dialogService, ICloudCopyService cloudCopy, ILogger log, IMvxNavigationService navigationService)
         {
             _dialogService = dialogService;
-            _source = source;
-            _destination = destination;
+            _cloudCopy = cloudCopy;
             _log = log;
             _navigationService = navigationService;
-            SourceLoginCommand = new MvxAsyncCommand(() => Login(_source));
-            DestinationLoginCommand = new MvxAsyncCommand(() => Login(_destination));
+            SourceLoginCommand = new MvxAsyncCommand(() => Login(cloudCopy.Source));
+            DestinationLoginCommand = new MvxAsyncCommand(() => Login(cloudCopy.Destination));
         }
 
         public ICommand SourceLoginCommand { get; set; }
@@ -40,7 +37,7 @@ namespace FlickrToOneDrive.Core.ViewModels
             {
                 var url = await cloud.GetAuthorizeUrl();
                 await _dialogService.ShowUrl(url);
-                if (_source.IsAuthorized && _destination.IsAuthorized)
+                if (_cloudCopy.IsAuthorized)
                 {
                     await _navigationService.Navigate<ProgressViewModel, Session>((Session)null);
                 }
