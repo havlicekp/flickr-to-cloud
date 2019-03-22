@@ -1,0 +1,13 @@
+﻿{
+  "flickr": {
+    "callbackUrl": "cloudcopy://flickr",
+    "clientId": "5fce95fcf5c00579f81c4df1a94f899f",
+    "clientSecret": "141a3a2f69c4ed28",
+    "scope": "read"
+  },
+  "onedrive": {
+    "callbackUrl": "cloudcopy://onedrive",
+    "clientId": "35d507bc-886d-4085-878d-2f3302d34bc5",
+    "scope": "User.Read, Files.ReadWrite"
+  } 
+}

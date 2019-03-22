@@ -1,0 +1,85 @@
+﻿<views:MvxWindowsPage
+    x:Class="FlickrToOneDrive.Views.SessionsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:FlickrToOneDrive.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="using:MvvmCross.Platforms.Uap.Views"
+    xmlns:contracts="using:FlickrToOneDrive.Contracts"
+    xmlns:converters="using:FlickrToOneDrive.Converters"
+    mc:Ignorable="d"
+    Background="{ThemeResource SystemControlPageBackgroundBaseLowBrush}">
+    <Page.Resources>
+        <converters:DateTimeConverter x:Name="DateTimeConverter" />
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <local:Header Grid.Row="0" />
+
+        <StackPanel Grid.Row="1">
+            <TextBlock Style="{StaticResource Heading}">Sessions</TextBlock>
+            <TextBlock Style="{StaticResource Message}">
+                    Existing session(s) found. Please click Check Status button to see session progress. If you want to start a new session, click New Session.
+            </TextBlock>
+        </StackPanel>
+
+        <ListView Grid.Row="2" ItemsSource="{x:Bind Vm.Sessions, Mode=OneWay}" 
+                  HorizontalAlignment="Center" 
+                  MinWidth="400" 
+                  BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                  BorderThickness="2"
+                  Margin="0 0 0 15"
+                  SelectedItem="{x:Bind Vm.SelectedSession, Mode=TwoWay}"
+                  KeyDown="OnKeyDown">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="contracts:Session">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"></ColumnDefinition>
+                            <ColumnDefinition Width="Auto"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <Image Grid.RowSpan="2" Grid.Column="0" x:Name="ToolkitLogo"                                
+                                       Width="18"
+                                       Height="18"
+                                       Margin="0,0,18,0"
+                                       Source="ms-appx:///Assets/logo.png" />
+                        <TextBlock Grid.Column="1" Grid.Row="0" Text="{x:Bind}" />
+                        <StackPanel Grid.Column="1" Grid.Row="1"  Orientation="Horizontal">
+                            <TextBlock>
+                                <Run>Destination Folder: </Run>
+                                <Run />
+                                <Run Text="{x:Bind DestinationFolder}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Padding" Value="12,12,24,12" />
+                </Style>
+            </ListView.ItemContainerStyle>
+        </ListView>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button Style="{StaticResource Button}" Command="{x:Bind Vm.CheckStatusCommand}">Check Status</Button>
+            <Button Style="{StaticResource Button}" Command="{x:Bind Vm.NewSessionCommand}">New Session</Button>
+        </StackPanel>
+
+        <local:Footer Grid.Row="4"/>
+    </Grid>
+</views:MvxWindowsPage>

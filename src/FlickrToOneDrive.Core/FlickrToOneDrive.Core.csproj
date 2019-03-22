@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.2.3" />
+    <PackageReference Include="Moq" Version="4.10.1" />
+    <PackageReference Include="MvvmCross" Version="6.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlickrToOneDrive.Contracts\FlickrToOneDrive.Contracts.csproj" />
+    <ProjectReference Include="..\FlickrToOneDrive.Flickr\FlickrToOneDrive.Flickr.csproj" />
+    <ProjectReference Include="..\FlickrToOneDrive.OneDrive\FlickrToOneDrive.OneDrive.csproj" />
+  </ItemGroup>
+
+</Project>
