@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
+using FlickrToOneDrive.Contracts.Exceptions;
 using FlickrToOneDrive.Contracts.Interfaces;
 using FlickrToOneDrive.Contracts.Models;
 using Serilog;
@@ -22,68 +23,106 @@ namespace FlickrToOneDrive.Flickr
         public FlickrFileSystem(IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher, ILogger log)
         {
             _config = config;
-            _log = log;
+            _log = log.ForContext(GetType());
             callbackDispatcher.Register(this);
             _callbackUrl = _config["flickr.callbackUrl"];
         }
 
         public async Task<File[]> GetFiles()
         {
-            var result = new List<File>();
-            var json = await _flickrClient.PhotosSearch(1, 500, "url_o");
-            var totalPages = Int32.Parse(json["photos"]["pages"].ToString());
-
-            if (totalPages > 0)
+            try
             {
-                var page = 1;
 
-                do
+                var result = new List<File>();
+                var json = await _flickrClient.PhotosSearch(1, 500, "url_o");
+                var totalPages = Int32.Parse(json["photos"]["pages"].ToString());
+
+                if (totalPages > 0)
                 {
-                    var photosCount = json["photos"]["photo"].Count();
-                    for (int i = 0; i < photosCount; i++)
+                    var page = 1;
+
+                    do
                     {
-                        var photo = json["photos"]["photo"][i];
-                        var url_o = (string) photo["url_o"];
-                        var title = (string) photo["title"];
-                        var file = new File
-                        {                            
-                            SourceUrl = url_o,
-                            FileName = Path.Combine(title, Path.GetExtension(url_o))
-                        };
+                        var photosCount = json["photos"]["photo"].Count();
+                        for (int i = 0; i < photosCount; i++)
+                        {
+                            var photo = json["photos"]["photo"][i];
+                            var url_o = (string) photo["url_o"];
+                            var title = (string) photo["title"];
+                            var file = new File
+                            {
+                                SourceUrl = url_o,
+                                FileName = title + Path.GetExtension(url_o)
+                            };
 
-                        result.Add(file);
-                    }
+                            result.Add(file);
+                        }
 
-                    page += 1;
-                    json = await _flickrClient.PhotosSearch(page, 500, "url_o");
-                } while (--totalPages > 0);
+                        page += 1;
+                        json = await _flickrClient.PhotosSearch(page, 500, "url_o");
+                    } while (--totalPages > 0);
+                }
+
+                return result.ToArray();
             }
-
-            return result.ToArray();
+            catch (Exception e)
+            {
+                var msg = "Error getting files from Flickr";
+                _log.Error(e, msg);
+                throw new CloudCopyException(msg);
+            }
         }
 
         public async Task<string> GetAuthorizeUrl()
         {
-            var clientId = _config["flickr.clientId"];
-            var clientSecret = _config["flickr.clientSecret"];
-            var scope = _config["flickr.scope"];            
+            try
+            {
+                _log.Information("Getting authorize URL for Flickr");
 
-            _flickrClient = new FlickrClient(clientId, clientSecret, scope, _callbackUrl);
-            return await _flickrClient.GetAuthorizeUrl();
+                var clientId = _config["flickr.clientId"];
+                var clientSecret = _config["flickr.clientSecret"];
+                var scope = _config["flickr.scope"];
 
+                _flickrClient = new FlickrClient(clientId, clientSecret, scope, _callbackUrl, _log);
+                var url = await _flickrClient.GetAuthorizeUrl();
+
+                _log.Verbose($"Authorize URL for Flickr: {url}");
+
+                return url;
+            }
+            catch (Exception e)
+            {
+                var msg = "Error during Flickr authorization";
+                _log.Error(e, msg);
+                throw new CloudCopyException(msg);
+            }
         }
 
         public string Name => "Flickr";
 
         public bool IsAuthorized => _isAuthorized;
 
-        public async Task HandleAuthenticationCallback(Uri callbackUrl)
+        public async Task HandleAuthenticationCallback(Uri callbackUri)
         {
-            if (callbackUrl.AbsoluteUri.StartsWith(_callbackUrl))
+            try
             {
-                var res = HttpUtility.ParseQueryString(callbackUrl.AbsoluteUri);
-                var code = res["oauth_verifier"];
-                _isAuthorized = await _flickrClient.Authorize(code);
+                if (callbackUri.AbsoluteUri.StartsWith(_callbackUrl))
+                {
+                    _log.Information($"Authentication callback for Flickr");
+                    _log.Verbose(callbackUri.AbsoluteUri);
+
+                    var res = HttpUtility.ParseQueryString(callbackUri.AbsoluteUri);
+                    var code = res["oauth_verifier"];
+                    _isAuthorized = await _flickrClient.Authorize(code);
+
+                    _log.Information("Successfully logged in Flickr");
+                }
+            }
+            catch (Exception e)
+            {
+                var msg = "Error logging into Flickr";
+                _log.Error(e, msg);
+                throw new CloudCopyException(msg);
             }
         }
 

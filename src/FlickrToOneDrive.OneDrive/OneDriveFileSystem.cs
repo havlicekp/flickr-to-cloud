@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -30,8 +31,8 @@ namespace FlickrToOneDrive.OneDrive
         public bool IsAuthorized => _isAuthorized;
 
         public OneDriveFileSystem(IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher, ILogger log)
-        {
-            _log = log;
+        {            
+            _log = log.ForContext(GetType());
 
             _clientId = config["onedrive.clientId"];
             _callbackUrl = config["onedrive.callbackUrl"];
@@ -45,26 +46,31 @@ namespace FlickrToOneDrive.OneDrive
             if (_token == null)
             {
                 throw new CloudCopyException("Can't access OneDrive, not authorized");
-            }            
+            }
+            
+            _log.Information("Uploading a file {@File}", file);
 
-            var endpoint = "https://graph.microsoft.com/v1.0/me/drive/root/children";
+            var endpoint = $"https://graph.microsoft.com/v1.0/me/drive/root:{path}:/children";
 
             using (var request = new HttpRequestMessage(HttpMethod.Post, endpoint))
             {
+                var fileName = Path.GetFileName(file.SourceUrl);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token.AccessToken);
                 request.Headers.Add("Prefer", "respond-async");
                 request.Method = HttpMethod.Post;
-                request.Content = new StringContent(@"{
-                    ""@microsoft.graph.sourceUrl"": ""http://wscont2.apps.microsoft.com/winstore/1x/e33e38d9-d138-42a1-b252-27da1924ca87/Screenshot.225037.100000.jpg"",
-                    ""name"": ""halo-screenshot.jpg"",
-                    ""file"": {}
-                }", Encoding.UTF8, "application/json");
+                request.Content = new StringContent($@"{{
+                    ""@microsoft.graph.sourceUrl"": ""{file.SourceUrl}"",
+                    ""name"": ""{fileName}"",
+                    ""file"": {{}}
+                }}", Encoding.UTF8, "application/json");
 
                 using (var client = new HttpClient())
                 {
                     using (var response = await client.SendAsync(request))
                     {
+                        _log.Verbose("Response {@Response}", response);
+
                         if (response.IsSuccessStatusCode)
                         {
                             return response.Headers.Location.ToString();
@@ -73,32 +79,46 @@ namespace FlickrToOneDrive.OneDrive
                 }
             }
 
-            return "";
+            return null;
         }
 
         public async Task<OperationStatus> CheckOperationStatus(string monitorUrl)
         {
-            using (var client = new HttpClient())
+            try
             {
-                using (var response = await client.GetAsync(monitorUrl))
+                _log.Information($"Checking operation status for {monitorUrl}");
+
+                using (var client = new HttpClient())
                 {
-                    OperationStatus result;
-                    if (response.IsSuccessStatusCode)
+                    using (var response = await client.GetAsync(monitorUrl))
                     {
-                        var json = JObject.Parse(await response.Content.ReadAsStringAsync());
-                        var percentageComplete = (int) double.Parse(json["percentageComplete"].ToString());
-                        var status = json["status"].ToString();
-                        var operation = json["operation"].ToString();
-                        result = new OperationStatus(percentageComplete, status, operation, response.StatusCode, monitorUrl);
+                        OperationStatus result;
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var content = await response.Content.ReadAsStringAsync();
 
-                    }
-                    else
-                    {
-                        result = new OperationStatus(0, null, null, response.StatusCode, monitorUrl);
-                    }
+                            _log.Verbose($"Response body {content}");
 
-                    return result;
+                            var json = JObject.Parse(content);
+                            var percentageComplete = (int)double.Parse(json["percentageComplete"].ToString());
+                            var status = json["status"].ToString();
+                            var operation = json["operation"].ToString();
+                            result = new OperationStatus(percentageComplete, status, operation, true, monitorUrl);
+                        }
+                        else
+                        {
+                            result = new OperationStatus(0, null, null, false, monitorUrl);
+                        }
+
+                        return result;
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                var msg = "Can't check OneDrive operation status";
+                _log.Error(e, msg);
+                throw new CloudCopyException(msg);
             }
         }
 
@@ -106,21 +126,45 @@ namespace FlickrToOneDrive.OneDrive
         {            
             if (callbackUri.AbsoluteUri.StartsWith(_callbackUrl))
             {
-                var parts = HttpUtility.ParseQueryString(callbackUri.AbsoluteUri);
-                if (parts.Count == 0)
-                {
-                    throw new CloudCopyException($"OneDrive callback URL not recognized: {callbackUri.AbsoluteUri}");
-                }
+                _log.Information($"Authentication callback for OneDrive");
+                _log.Verbose(callbackUri.AbsoluteUri);
 
-                var code = parts[0];
-                _token = await ExchangeCodeForAccessTokenAsync(code, _clientId, null, _callbackUrl);
-                _isAuthorized = true;
+                try
+                {
+                    var parts = HttpUtility.ParseQueryString(callbackUri.AbsoluteUri);
+                    var code = parts[0];
+
+                    _token = await ExchangeCodeForAccessTokenAsync(code, _clientId, null, _callbackUrl);
+                    _isAuthorized = true;
+
+                    _log.Information("Successfully logged in OneDrive");
+                }
+                catch (Exception e)
+                {
+                    _log.Error(e, $"Error logging into OneDrive with callback URI {callbackUri.AbsoluteUri}");
+                    throw new CloudCopyException("Error logging into OneDrive");
+                }
             }            
         }
 
         public Task<string> GetAuthorizeUrl()
         {
-            return Task.FromResult(OneDriveClient.GetRequestUrl(_clientId, _scope, _callbackUrl));
+            try
+            {
+                _log.Information("Getting authorize URL for OneDrive");
+
+                var url = Task.FromResult(OneDriveClient.GetRequestUrl(_clientId, _scope, _callbackUrl));
+
+                _log.Verbose($"Authorize URL for OneDrive: {url.Result}");
+
+                return url;
+            }
+            catch (Exception e)
+            {
+                var msg = "Error during OneDrive authorization";
+                _log.Error(e, msg);
+                throw new CloudCopyException(msg);
+            }
         }
 
         public Task<File[]> GetFiles()

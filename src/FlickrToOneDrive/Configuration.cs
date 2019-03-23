@@ -17,7 +17,7 @@ namespace FlickrToOneDrive
 
         public Configuration(ILogger log)
         {
-            _log = log;
+            _log = log.ForContext(GetType());
             _config = new Dictionary<string, string>();
             Init();
         }
@@ -26,6 +26,7 @@ namespace FlickrToOneDrive
         {
             var configFile = StorageFile.GetFileFromApplicationUriAsync(ConfigFileUri).GetAwaiter().GetResult();
             var contents = FileIO.ReadTextAsync(configFile).GetAwaiter().GetResult();
+            _log.Information($"Parsing JSON config {contents}");
             var json = JObject.Parse(contents);
             foreach (var child in json)
             {

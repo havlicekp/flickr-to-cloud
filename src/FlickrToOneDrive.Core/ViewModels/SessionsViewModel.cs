@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using FlickrToOneDrive.Contracts;
@@ -20,7 +19,7 @@ namespace FlickrToOneDrive.Core.ViewModels
 
         public SessionsViewModel(ILogger log, IMvxNavigationService navigationService, IDialogService dialogService)
         {
-            _log = log;
+            _log = log.ForContext(GetType());
             _navigationService = navigationService;
             _dialogService = dialogService;
             CheckStatusCommand = new MvxAsyncCommand(CheckStatus);
@@ -59,12 +58,16 @@ namespace FlickrToOneDrive.Core.ViewModels
                 return;
             }
 
-            await _navigationService.Navigate<ProgressViewModel, Session>(SelectedSession);
+            var setup = new Setup {Session = SelectedSession};
+            _log.Information("Going to continue with existing session {SelectedSession}", SelectedSession);
+            await _navigationService.Navigate<ProgressViewModel, Setup>(setup);
         }
 
         private async Task NewSession()
         {
-            await _navigationService.Navigate<LoginViewModel>();
+            var setup = new Setup();
+            _log.Information("Going to create a new session");
+            await _navigationService.Navigate<LoginViewModel, Setup>(setup);
         }
 
         private Task DeleteSession()

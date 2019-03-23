@@ -64,7 +64,7 @@ namespace FlickrToOneDrive.Core
             mockedOneDrive.Setup(x => x.CheckOperationStatus(It.IsAny<string>())).Returns<string>(async (monitorUrl) =>
             {
                 await Task.Delay(2000);
-                return new OperationStatus(20, "inProgress", "DownloadUrl", HttpStatusCode.Accepted, monitorUrl);
+                return new OperationStatus(20, "inProgress", "DownloadUrl", true, monitorUrl);
             });
             mockedOneDrive.Setup(x => x.IsAuthorized).Returns(true);
             mockedOneDrive.Setup(x => x.GetAuthorizeUrl()).Returns(Task.FromResult("about:blank"));

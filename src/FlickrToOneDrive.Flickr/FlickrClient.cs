@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Open.OAuth;
+using Serilog;
 
 namespace FlickrToOneDrive.Flickr
 {
@@ -12,6 +13,7 @@ namespace FlickrToOneDrive.Flickr
         private readonly string _clientSecret;
         private readonly string _scope;
         private readonly string _callbackUrl;
+        private readonly ILogger _log;
         private string _authCode;
         private OAuthToken _requestToken;
         private OAuthToken _accessToken;
@@ -25,12 +27,13 @@ namespace FlickrToOneDrive.Flickr
         private const string _flickrOauthAccessTokenUrl = "https://www.flickr.com/services/oauth/access_token";
         private const string _flickrRestUrl = "https://api.flickr.com/services/rest";
 
-        public FlickrClient(string clientId, string clientSecret, string scope, string callbackUrl)
+        public FlickrClient(string clientId, string clientSecret, string scope, string callbackUrl, ILogger log)
         {
             _clientId = clientId;
             _clientSecret = clientSecret;
             _scope = scope;
             _callbackUrl = callbackUrl;
+            _log = log.ForContext(GetType());
         }
 
         public async Task<bool> Authorize(string authCode)
@@ -44,15 +47,9 @@ namespace FlickrToOneDrive.Flickr
 
         public async Task<string> GetAuthorizeUrl()
         {
-            try
-            {
-                _requestToken = await OAuthClient.GetRequestTokenAsync(_flickrOauthRequestTokenUrl, _clientId, _clientSecret, _callbackUrl);
-                return string.Format(_flickrOauthAuthorize, _requestToken.Token, _scope);
-            }
-            catch (Exception e)
-            {
-                throw new Exception("Error during Flickr authorization", e);
-            }
+            _requestToken = await OAuthClient.GetRequestTokenAsync(_flickrOauthRequestTokenUrl, _clientId, _clientSecret, _callbackUrl);
+            var result = string.Format(_flickrOauthAuthorize, _requestToken.Token, _scope);
+            return result;
         }
 
         public async Task<JObject> PhotosSearch(int page = 1, int perPage = 100, string extras = "", FlickrParams parameters = null)
@@ -89,6 +86,8 @@ namespace FlickrToOneDrive.Flickr
 
         private async Task<JObject> FlickrHttpRequest(string mode, FlickrParams parameters)
         {
+            _log.Information($"Flickr {mode} HTTTP request {{method}}", parameters["method"]);
+
             parameters["nojsoncallback"] = "1";
             parameters["format"] = "json";
 

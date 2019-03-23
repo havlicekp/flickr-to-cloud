@@ -19,7 +19,6 @@ namespace FlickrToOneDrive
         {
             _loginDlg.Url = url;
             await _loginDlg.ShowAsync();
-            await Task.FromResult(0);
         }
 
         public async Task ShowDialog(string title, string content)
@@ -34,7 +33,7 @@ namespace FlickrToOneDrive
             await noWifiDialog.ShowAsync();
         }
 
-        public Task HandleAuthenticationCallback(Uri callbackUrl)
+        public Task HandleAuthenticationCallback(Uri callbackUri)
         {
             _loginDlg.Hide();
             return Task.FromResult(0);

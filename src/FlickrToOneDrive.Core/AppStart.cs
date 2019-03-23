@@ -19,7 +19,7 @@ namespace FlickrToOneDrive.Core
         public AppStart(IMvxApplication application, IMvxNavigationService navigationService, ILogger log) : base(application, navigationService)
         {
             _navigationService = navigationService;
-            _log = log;
+            _log = log.ForContext(GetType());
         }
 
         protected override Task NavigateToFirstViewModel(object hint = null)
@@ -33,7 +33,8 @@ namespace FlickrToOneDrive.Core
                 }
                 else
                 {
-                    _navigationService.Navigate<LoginViewModel>().GetAwaiter().GetResult();
+                    var setup = new Setup();
+                    _navigationService.Navigate<LoginViewModel, Setup>(setup).GetAwaiter().GetResult();
                 }
 
                 return Task.FromResult(0);

@@ -1,30 +1,35 @@
 ﻿using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using FlickrToOneDrive.Contracts;
+using FlickrToOneDrive.Contracts.Exceptions;
 using FlickrToOneDrive.Contracts.Interfaces;
 using MvvmCross.Commands;
 using MvvmCross.ViewModels;
+using Serilog;
 
 namespace FlickrToOneDrive.Core.ViewModels
 {
-    public class ProgressViewModel : MvxViewModel<Session>
+    public class ProgressViewModel : MvxViewModel<Setup>
     {
         private readonly ICloudCopyService _copyService;
+        private readonly IDialogService _dialogService;
+        private readonly ILogger _log;
         private string _statusMessage;
         private string _title;
         private bool _inProgress;
-        private Session _sessionToCheck;
+        private Setup _setup;
 
-        public ProgressViewModel(ICloudCopyService copyService)
+        public ProgressViewModel(ICloudCopyService copyService, IDialogService dialogService, ILogger log)
         {
             CheckStatusCommand = new MvxAsyncCommand(CheckStatus);
             _copyService = copyService;
+            _dialogService = dialogService;
+            _log = log.ForContext(GetType());
         }
 
-        public override void Prepare(Session session)
+        public override void Prepare(Setup setup)
         {
-            _sessionToCheck = session;
+            _setup = setup;
             _copyService.NothingToUploadHandler += () => StatusMessage = $"No files found on {_copyService.Source.Name}";
             _copyService.ReadingSourceHandler += () => StatusMessage = $"Reading files from {_copyService.Source.Name} ...";
             _copyService.UploadProgressHandler += (progress) =>
@@ -43,9 +48,9 @@ namespace FlickrToOneDrive.Core.ViewModels
         public override async void ViewAppeared()
         {
             base.ViewAppeared();            
-            if (_sessionToCheck == null)
+            if (_setup.Session == null)
             {
-                await ExecuteWithProgress(() => _copyService.Copy("/"));
+                await ExecuteWithProgress(() => _copyService.Copy(_setup.DestinationFolder));
             }
             else
             {
@@ -56,13 +61,13 @@ namespace FlickrToOneDrive.Core.ViewModels
         public async Task CheckStatus()
         {
             StatusMessage = "";
-            if (_sessionToCheck == null)
+            if (_setup.Session == null)
             {
                 await ExecuteWithProgress(() => _copyService.CheckStatus(_copyService.CreatedSessionId)); 
             }
             else
             {
-                await ExecuteWithProgress(() => _copyService.CheckStatus(_sessionToCheck.SessionId));
+                await ExecuteWithProgress(() => _copyService.CheckStatus(_setup.Session.SessionId));
             }            
         }
 
@@ -104,7 +109,19 @@ namespace FlickrToOneDrive.Core.ViewModels
         private async Task ExecuteWithProgress(Func<Task> a)
         {
             InProgress = true;
-            await a();
+            try
+            {
+                await a();
+            }
+            catch (CloudCopyException e)
+            {
+                await _dialogService.ShowDialog("Error", e.Message);
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "Unhandled exception");
+                await _dialogService.ShowDialog("Error", "Unknown Error occured");
+            }
             InProgress = false;
         }
     }

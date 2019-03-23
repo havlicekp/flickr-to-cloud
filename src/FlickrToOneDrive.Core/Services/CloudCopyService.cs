@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using FlickrToOneDrive.Contracts;
+using FlickrToOneDrive.Contracts.Exceptions;
 using FlickrToOneDrive.Contracts.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -14,7 +15,7 @@ namespace FlickrToOneDrive.Core.Services
         private readonly ICloudFileSystem _source;
         private readonly ICloudFileSystem _destination;
         private int _sessionId;
-        private readonly ILogger _logger;
+        private readonly ILogger _log;
         private string _destinationPath;
 
         public event Action<int> UploadProgressHandler;
@@ -27,7 +28,7 @@ namespace FlickrToOneDrive.Core.Services
 
         public event Action<int, int, int> CheckingStatusFinishedHandler;
 
-        public CloudCopyService(ICloudFileSystemFactory factory, IConfiguration config, ILogger logger)
+        public CloudCopyService(ICloudFileSystemFactory factory, IConfiguration config, ILogger log)
         {
             var sourceCloudId = config["config.sourceCloudId"];
             var destinationCloudId = config["config.destinationCloudId"];
@@ -35,7 +36,7 @@ namespace FlickrToOneDrive.Core.Services
             _source = factory.Create(sourceCloudId);
             _destination = factory.Create(destinationCloudId);
 
-            _logger = logger;
+            _log = log.ForContext(GetType());
         }
 
         public ICloudFileSystem Destination => _destination;
@@ -61,7 +62,7 @@ namespace FlickrToOneDrive.Core.Services
             else
             {
                 NothingToUploadHandler?.Invoke();
-                _logger.Warning("No files found on Flickr");
+                _log.Warning("No files found on Flickr");
             }
         }
 
@@ -75,6 +76,12 @@ namespace FlickrToOneDrive.Core.Services
                 foreach (var file in files)
                 {
                     var uploadStatusData = await _destination.UploadFileFromUrl(_destinationPath, file);
+                    if (string.IsNullOrEmpty(uploadStatusData))
+                    {
+                        _log.Error($"{Source.Name} returned empty monitor URL");
+                        throw new CloudCopyException($"Invalid response from {Source.Name}, aborting the upload");
+                    }
+
                     file.UploadStatusData = uploadStatusData;
                     db.SaveChanges();
 
@@ -97,13 +104,15 @@ namespace FlickrToOneDrive.Core.Services
                 var files = db.Files.Where(f => f.SessionId == sessionId);
                 var fileCount = files.Count();
 
+                _log.Information($"Going to check status for {fileCount} file(s)");
+
                 foreach (var f in files)
                 {
                     switch (f.UploadStatus)
                     {
                         case UploadStatus.InProgress:
                             var status = await _destination.CheckOperationStatus(f.UploadStatusData);
-                            if (status.ResponseCode == HttpStatusCode.Accepted)
+                            if (status.SuccessResponseCode)
                             {
                                 if (status.PercentageComplete == 100)
                                 {

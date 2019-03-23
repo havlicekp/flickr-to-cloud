@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using FlickrToOneDrive.Contracts.Interfaces;
 
 namespace FlickrToOneDrive.Core
@@ -13,9 +14,12 @@ namespace FlickrToOneDrive.Core
             callbacks.Add(callback);
         }
 
-        public void DispatchUriCallback(Uri uri)
+        public async Task DispatchUriCallback(Uri uri)
         {
-            callbacks.ForEach(c => c.HandleAuthenticationCallback(uri));
+            foreach (var callback in callbacks)
+            {
+                await callback.HandleAuthenticationCallback(uri);
+            }
         }
     }
 }

@@ -4,19 +4,19 @@ namespace FlickrToOneDrive.Contracts.Models
 {
     public class OperationStatus
     {
-        public OperationStatus(int percentageComplete, string status, string operation, HttpStatusCode responseCode, string monitorUrl)
+        public OperationStatus(int percentageComplete, string status, string operation, bool successResponseCode, string monitorUrl)
         {
             PercentageComplete = percentageComplete;
             Status = status;
             Operation = operation;
-            ResponseCode = responseCode;
+            SuccessResponseCode = successResponseCode;
             MonitorUrl = monitorUrl;
         }
 
         public int PercentageComplete { get; }
         public string Status { get; set; }
         public string Operation { get; set; }
-        public HttpStatusCode ResponseCode { get; set; }
+        public bool SuccessResponseCode { get; set; }
         public string MonitorUrl { get; set; }
     }
 }
