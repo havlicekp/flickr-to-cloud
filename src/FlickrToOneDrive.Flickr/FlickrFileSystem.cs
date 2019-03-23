@@ -17,7 +17,7 @@ namespace FlickrToOneDrive.Flickr
         private readonly IConfiguration _config;
         private readonly ILogger _log;
         private FlickrClient _flickrClient;
-        private bool _isAuthorized;
+        private bool _isAuthenticated;
         private readonly string _callbackUrl;
 
         public FlickrFileSystem(IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher, ILogger log)
@@ -73,26 +73,26 @@ namespace FlickrToOneDrive.Flickr
             }
         }
 
-        public async Task<string> GetAuthorizeUrl()
+        public async Task<string> GetAuthenticationUrl()
         {
             try
             {
-                _log.Information("Getting authorize URL for Flickr");
+                _log.Information("Getting authentication URL for Flickr");
 
                 var clientId = _config["flickr.clientId"];
                 var clientSecret = _config["flickr.clientSecret"];
                 var scope = _config["flickr.scope"];
 
                 _flickrClient = new FlickrClient(clientId, clientSecret, scope, _callbackUrl, _log);
-                var url = await _flickrClient.GetAuthorizeUrl();
+                var url = await _flickrClient.GetAuthenticationUrl();
 
-                _log.Verbose($"Authorize URL for Flickr: {url}");
+                _log.Verbose($"Authenticate URL for Flickr: {url}");
 
                 return url;
             }
             catch (Exception e)
             {
-                var msg = "Error during Flickr authorization";
+                var msg = "Error during Flickr authentication";
                 _log.Error(e, msg);
                 throw new CloudCopyException(msg);
             }
@@ -100,7 +100,7 @@ namespace FlickrToOneDrive.Flickr
 
         public string Name => "Flickr";
 
-        public bool IsAuthorized => _isAuthorized;
+        public bool IsAuthenticated => _isAuthenticated;
 
         public async Task HandleAuthenticationCallback(Uri callbackUri)
         {
@@ -113,7 +113,7 @@ namespace FlickrToOneDrive.Flickr
 
                     var res = HttpUtility.ParseQueryString(callbackUri.AbsoluteUri);
                     var code = res["oauth_verifier"];
-                    _isAuthorized = await _flickrClient.Authorize(code);
+                    _isAuthenticated = await _flickrClient.Authenticate(code);
 
                     _log.Information("Successfully logged in Flickr");
                 }

@@ -36,9 +36,9 @@ namespace FlickrToOneDrive.Core.ViewModels
         {
             try
             {
-                var url = await cloud.GetAuthorizeUrl();
+                var url = await cloud.GetAuthenticationUrl();
                 await _dialogService.ShowUrl(url);
-                if (_cloudCopyService.IsAuthorized)
+                if (_cloudCopyService.IsAuthenticated)
                 {
                     await _navigationService.Navigate<DestinationFolderViewModel, Setup>(_setup);
                 }

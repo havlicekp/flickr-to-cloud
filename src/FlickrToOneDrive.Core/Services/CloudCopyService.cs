@@ -45,7 +45,7 @@ namespace FlickrToOneDrive.Core.Services
 
         public int CreatedSessionId => _sessionId;
 
-        public bool IsAuthorized => _source.IsAuthorized && _destination.IsAuthorized;
+        public bool IsAuthenticated => _source.IsAuthenticated && _destination.IsAuthenticated;
 
         public async Task Copy(string destinationPath)
         {

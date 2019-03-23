@@ -49,8 +49,8 @@ namespace FlickrToOneDrive.Core
                 await Task.Delay(2000);
                 return files;
             });
-            mockedFlickr.Setup(x => x.IsAuthorized).Returns(true);
-            mockedFlickr.Setup(x => x.GetAuthorizeUrl()).Returns(Task.FromResult("about:blank"));
+            mockedFlickr.Setup(x => x.IsAuthenticated).Returns(true);
+            mockedFlickr.Setup(x => x.GetAuthenticationUrl()).Returns(Task.FromResult("about:blank"));
             mockedFlickr.Setup(x => x.Name).Returns("Flickr");
 
 
@@ -66,8 +66,8 @@ namespace FlickrToOneDrive.Core
                 await Task.Delay(2000);
                 return new OperationStatus(20, "inProgress", "DownloadUrl", true, monitorUrl);
             });
-            mockedOneDrive.Setup(x => x.IsAuthorized).Returns(true);
-            mockedOneDrive.Setup(x => x.GetAuthorizeUrl()).Returns(Task.FromResult("about:blank"));
+            mockedOneDrive.Setup(x => x.IsAuthenticated).Returns(true);
+            mockedOneDrive.Setup(x => x.GetAuthenticationUrl()).Returns(Task.FromResult("about:blank"));
             mockedOneDrive.Setup(x => x.Name).Returns("OneDrive");
 
             var mockedCloudFactory = new Mock<ICloudFileSystemFactory>();

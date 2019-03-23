@@ -24,11 +24,11 @@ namespace FlickrToOneDrive.OneDrive
         private readonly string _callbackUrl;
         private OAuth2Token _token;
         private readonly string _scope;
-        private bool _isAuthorized;
+        private bool _isAuthenticated;
 
         public string Name => "OneDrive";
 
-        public bool IsAuthorized => _isAuthorized;
+        public bool IsAuthenticated => _isAuthenticated;
 
         public OneDriveFileSystem(IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher, ILogger log)
         {            
@@ -45,7 +45,7 @@ namespace FlickrToOneDrive.OneDrive
         {
             if (_token == null)
             {
-                throw new CloudCopyException("Can't access OneDrive, not authorized");
+                throw new CloudCopyException("Can't access OneDrive, not authenticated");
             }
             
             _log.Information("Uploading a file {@File}", file);
@@ -135,7 +135,7 @@ namespace FlickrToOneDrive.OneDrive
                     var code = parts[0];
 
                     _token = await ExchangeCodeForAccessTokenAsync(code, _clientId, null, _callbackUrl);
-                    _isAuthorized = true;
+                    _isAuthenticated = true;
 
                     _log.Information("Successfully logged in OneDrive");
                 }
@@ -147,21 +147,21 @@ namespace FlickrToOneDrive.OneDrive
             }            
         }
 
-        public Task<string> GetAuthorizeUrl()
+        public Task<string> GetAuthenticationUrl()
         {
             try
             {
-                _log.Information("Getting authorize URL for OneDrive");
+                _log.Information("Getting authentication URL for OneDrive");
 
                 var url = Task.FromResult(OneDriveClient.GetRequestUrl(_clientId, _scope, _callbackUrl));
 
-                _log.Verbose($"Authorize URL for OneDrive: {url.Result}");
+                _log.Verbose($"Authentication URL for OneDrive: {url.Result}");
 
                 return url;
             }
             catch (Exception e)
             {
-                var msg = "Error during OneDrive authorization";
+                var msg = "Error during OneDrive authentication";
                 _log.Error(e, msg);
                 throw new CloudCopyException(msg);
             }

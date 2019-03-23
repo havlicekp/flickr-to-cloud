@@ -21,7 +21,7 @@ namespace FlickrToOneDrive.Flickr
 
         private const string _flickrOauthRequestTokenUrl = "https://www.flickr.com/services/oauth/request_token";
 
-        private const string _flickrOauthAuthorize =
+        private const string _flickrOauthAuthenticate =
             "https://secure.flickr.com/services/oauth/authorize?oauth_token={0}&perms={1}";
 
         private const string _flickrOauthAccessTokenUrl = "https://www.flickr.com/services/oauth/access_token";
@@ -36,7 +36,7 @@ namespace FlickrToOneDrive.Flickr
             _log = log.ForContext(GetType());
         }
 
-        public async Task<bool> Authorize(string authCode)
+        public async Task<bool> Authenticate(string authCode)
         {
             _accessToken = await OAuthClient.GetAccessTokenAsync(_flickrOauthAccessTokenUrl, _clientId, _clientSecret,
                 _requestToken.Token, _requestToken.TokenSecret, authCode);
@@ -45,10 +45,10 @@ namespace FlickrToOneDrive.Flickr
             return true;
         }
 
-        public async Task<string> GetAuthorizeUrl()
+        public async Task<string> GetAuthenticationUrl()
         {
             _requestToken = await OAuthClient.GetRequestTokenAsync(_flickrOauthRequestTokenUrl, _clientId, _clientSecret, _callbackUrl);
-            var result = string.Format(_flickrOauthAuthorize, _requestToken.Token, _scope);
+            var result = string.Format(_flickrOauthAuthenticate, _requestToken.Token, _scope);
             return result;
         }
 

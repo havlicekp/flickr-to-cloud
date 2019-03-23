@@ -16,6 +16,6 @@ namespace FlickrToOneDrive.Contracts.Interfaces
         Task Copy(string destinationPath);
         Task ResumeUpload(int sessionId);
         Task CheckStatus(int sessionId);
-        bool IsAuthorized { get; }
+        bool IsAuthenticated { get; }
     }
 }
