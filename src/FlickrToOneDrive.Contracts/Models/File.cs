@@ -1,4 +1,4 @@
-﻿namespace FlickrToOneDrive.Contracts
+﻿namespace FlickrToOneDrive.Contracts.Models
 {
     public class File
     {

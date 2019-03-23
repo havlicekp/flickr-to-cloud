@@ -1,4 +1,6 @@
-﻿namespace FlickrToOneDrive.Contracts.Interfaces
+﻿using FlickrToOneDrive.Contracts.Models;
+
+namespace FlickrToOneDrive.Contracts.Interfaces
 {
     public interface IUploadStatus
     {

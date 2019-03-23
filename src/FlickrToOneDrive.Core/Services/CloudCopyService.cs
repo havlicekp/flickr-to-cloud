@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using FlickrToOneDrive.Contracts;
 using FlickrToOneDrive.Contracts.Exceptions;
 using FlickrToOneDrive.Contracts.Interfaces;
+using FlickrToOneDrive.Contracts.Models;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 

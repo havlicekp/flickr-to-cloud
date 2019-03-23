@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FlickrToOneDrive.Contracts.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlickrToOneDrive.Contracts
 {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FlickrToOneDrive.Contracts
+namespace FlickrToOneDrive.Contracts.Models
 {
     public class Session
     {

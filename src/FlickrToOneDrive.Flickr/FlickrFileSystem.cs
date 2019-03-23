@@ -8,7 +8,7 @@ using FlickrToOneDrive.Contracts.Exceptions;
 using FlickrToOneDrive.Contracts.Interfaces;
 using FlickrToOneDrive.Contracts.Models;
 using Serilog;
-using File = FlickrToOneDrive.Contracts.File;
+using File = FlickrToOneDrive.Contracts.Models.File;
 
 namespace FlickrToOneDrive.Flickr
 {

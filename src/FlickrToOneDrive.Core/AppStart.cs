@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using FlickrToOneDrive.Contracts;
+using FlickrToOneDrive.Contracts.Models;
 using FlickrToOneDrive.Core.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using MvvmCross.Exceptions;

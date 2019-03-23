@@ -1,6 +1,4 @@
-﻿using System.Net;
-
-namespace FlickrToOneDrive.Contracts.Models
+﻿namespace FlickrToOneDrive.Contracts.Models
 {
     public class OperationStatus
     {

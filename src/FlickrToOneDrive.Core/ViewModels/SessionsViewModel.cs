@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using FlickrToOneDrive.Contracts;
 using FlickrToOneDrive.Contracts.Interfaces;
+using FlickrToOneDrive.Contracts.Models;
 using MvvmCross.Commands;
 using MvvmCross.Navigation;
 using MvvmCross.ViewModels;

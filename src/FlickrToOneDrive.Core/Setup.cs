@@ -1,4 +1,5 @@
 ﻿using FlickrToOneDrive.Contracts;
+using FlickrToOneDrive.Contracts.Models;
 
 namespace FlickrToOneDrive.Core
 {

@@ -8,6 +8,7 @@
     xmlns:views="using:MvvmCross.Platforms.Uap.Views"
     xmlns:contracts="using:FlickrToOneDrive.Contracts"
     xmlns:converters="using:FlickrToOneDrive.Converters"
+    xmlns:models="using:FlickrToOneDrive.Contracts.Models"
     mc:Ignorable="d"
     Background="{ThemeResource SystemControlPageBackgroundBaseLowBrush}">
     <Page.Resources>
@@ -41,7 +42,7 @@
                   SelectedItem="{x:Bind Vm.SelectedSession, Mode=TwoWay}"
                   KeyDown="OnKeyDown">
             <ListView.ItemTemplate>
-                <DataTemplate x:DataType="contracts:Session">
+                <DataTemplate x:DataType="models:Session">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />

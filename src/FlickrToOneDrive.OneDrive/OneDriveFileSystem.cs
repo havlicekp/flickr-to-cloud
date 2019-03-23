@@ -10,7 +10,7 @@ using Newtonsoft.Json.Linq;
 using Open.OAuth2;
 using Open.OneDrive;
 using static Open.OneDrive.OneDriveClient;
-using File = FlickrToOneDrive.Contracts.File;
+using File = FlickrToOneDrive.Contracts.Models.File;
 using System.Web;
 using FlickrToOneDrive.Contracts.Models;
 using Serilog;
@@ -65,6 +65,8 @@ namespace FlickrToOneDrive.OneDrive
                     ""file"": {{}}
                 }}", Encoding.UTF8, "application/json");
 
+                _log.Verbose("Request {@Request}", request);
+
                 using (var client = new HttpClient())
                 {
                     using (var response = await client.SendAsync(request))
@@ -97,7 +99,7 @@ namespace FlickrToOneDrive.OneDrive
                         {
                             var content = await response.Content.ReadAsStringAsync();
 
-                            _log.Verbose($"Response body {content}");
+                            _log.Verbose($"Response {content}");
 
                             var json = JObject.Parse(content);
                             var percentageComplete = (int)double.Parse(json["percentageComplete"].ToString());
