@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Web;
 using FlickrToOneDrive.Contracts.Exceptions;
 using FlickrToOneDrive.Contracts.Interfaces;
 using FlickrToOneDrive.Contracts.Models;
@@ -18,21 +17,23 @@ namespace FlickrToOneDrive.Flickr
         private readonly ILogger _log;
         private IFlickrClient _flickrClient;
         private bool _isAuthenticated;
-        private readonly string _callbackUrl;
 
         public FlickrFileSystem(IFlickrClient flickrClient, IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher, ILogger log)
         {
             _flickrClient = flickrClient;
             _config = config;
             _log = log.ForContext(GetType());
-            callbackDispatcher.Register(this);            
+            callbackDispatcher.Register(this);
         }
+
+        public string Name => "Flickr";
+
+        public bool IsAuthenticated => _isAuthenticated;
 
         public async Task<File[]> GetFiles()
         {
             try
             {
-
                 var result = new List<File>();
                 var json = await _flickrClient.PhotosSearch(1, 500, "url_o");
                 var totalPages = Int32.Parse(json["photos"]["pages"].ToString());
@@ -47,8 +48,8 @@ namespace FlickrToOneDrive.Flickr
                         for (int i = 0; i < photosCount; i++)
                         {
                             var photo = json["photos"]["photo"][i];
-                            var url_o = (string) photo["url_o"];
-                            var title = (string) photo["title"];
+                            var url_o = (string)photo["url_o"];
+                            var title = (string)photo["title"];
                             var file = new File
                             {
                                 SourceUrl = url_o,
@@ -76,15 +77,8 @@ namespace FlickrToOneDrive.Flickr
         public async Task<string> GetAuthenticationUrl()
         {
             try
-            {
-                _log.Information("Getting authentication URL for Flickr");
-
-                _flickrClient = new FlickrClient(clientId, clientSecret, scope, _callbackUrl, _log);
-                var url = await _flickrClient.GetAuthenticationUrl();
-
-                _log.Verbose($"Authenticate URL for Flickr: {url}");
-
-                return url;
+            {                
+                return await _flickrClient.GetAuthenticationUrl();                
             }
             catch (Exception e)
             {
@@ -94,25 +88,11 @@ namespace FlickrToOneDrive.Flickr
             }
         }
 
-        public string Name => "Flickr";
-
-        public bool IsAuthenticated => _isAuthenticated;
-
         public async Task HandleAuthenticationCallback(Uri callbackUri)
         {
             try
             {
-                if (callbackUri.AbsoluteUri.StartsWith(_callbackUrl))
-                {
-                    _log.Information($"Authentication callback for Flickr");
-                    _log.Verbose(callbackUri.AbsoluteUri);
-
-                    var res = HttpUtility.ParseQueryString(callbackUri.AbsoluteUri);
-                    var code = res["oauth_verifier"];
-                    _isAuthenticated = await _flickrClient.Authenticate(code);
-
-                    _log.Information("Successfully logged in Flickr");
-                }
+                _isAuthenticated = await _flickrClient.AuthenticateFromCallbackUrl(callbackUri.AbsoluteUri);                
             }
             catch (Exception e)
             {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;
 using FlickrToOneDrive.Contracts.Interfaces;
 using Newtonsoft.Json.Linq;
 using Open.OAuth;
@@ -38,19 +39,40 @@ namespace FlickrToOneDrive.Flickr
             _callbackUrl = config["flickr.callbackUrl"];            
         }
 
-        public async Task<bool> Authenticate(string authCode)
+        public string CallbackUrl => _callbackUrl;
+
+        public async Task<bool> AuthenticateFromCallbackUrl(string callbackUrl)
         {
-            _accessToken = await OAuthClient.GetAccessTokenAsync(_flickrOauthAccessTokenUrl, _clientId, _clientSecret,
-                _requestToken.Token, _requestToken.TokenSecret, authCode);
-            _authCode = authCode;
-            _userId = await TestLogin();
-            return true;
+            if (callbackUrl.StartsWith(_callbackUrl))
+            {
+                _log.Information($"Flickr authentication from callback URL");
+                _log.Verbose(callbackUrl);
+
+                var res = HttpUtility.ParseQueryString(callbackUrl);
+                _authCode = res["oauth_verifier"];
+
+                _accessToken = await OAuthClient.GetAccessTokenAsync(_flickrOauthAccessTokenUrl, _clientId,
+                    _clientSecret,
+                    _requestToken.Token, _requestToken.TokenSecret, _authCode);
+
+                _userId = await TestLogin();
+
+                _log.Information($"Successfully logged in Flickr with user ID {_userId}");
+                return true;
+            }
+
+            return false;
         }
 
-        public async Task<string> GetAuthorizeUrl()
+        public async Task<string> GetAuthenticationUrl()
         {
-            _requestToken = await OAuthClient.GetRequestTokenAsync(_flickrOauthRequestTokenUrl, _clientId, _clientSecret, _callbackUrl);
+            _log.Information("Getting authentication URL for Flickr");
+
+            _requestToken = await OAuthClient.GetRequestTokenAsync(_flickrOauthRequestTokenUrl, _clientId, _clientSecret, CallbackUrl);
             var result = string.Format(_flickrOauthAuthenticate, _requestToken.Token, _scope);
+
+            _log.Verbose($"Authentication URL for Flickr: {result}");
+
             return result;
         }
 

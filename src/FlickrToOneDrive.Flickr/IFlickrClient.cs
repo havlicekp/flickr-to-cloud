@@ -5,8 +5,9 @@ namespace FlickrToOneDrive.Flickr
 {
     public interface IFlickrClient
     {
-        Task<bool> Authenticate(string authCode);
-        Task<string> GetAuthorizeUrl();
+        Task<bool> AuthenticateFromCallbackUrl(string callbackUrl);
+        Task<string> GetAuthenticationUrl();
         Task<JObject> PhotosSearch(int page = 1, int perPage = 100, string extras = "", FlickrParams parameters = null);
+        string CallbackUrl { get; }
     }
 }

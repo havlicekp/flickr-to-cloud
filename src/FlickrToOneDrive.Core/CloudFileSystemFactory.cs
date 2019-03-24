@@ -2,6 +2,7 @@
 using FlickrToOneDrive.Contracts.Interfaces;
 using FlickrToOneDrive.Flickr;
 using FlickrToOneDrive.OneDrive;
+using MvvmCross;
 using Serilog;
 
 namespace FlickrToOneDrive.Core
@@ -24,7 +25,8 @@ namespace FlickrToOneDrive.Core
             switch (cloudId.ToLower())
             {
                 case "flickr":
-                    return new FlickrFileSystem(_config, _authCallbackDispatcher, _log);                    
+                    var flickrClient = Mvx.IoCProvider.Resolve<IFlickrClient>();
+                    return new FlickrFileSystem(flickrClient, _config, _authCallbackDispatcher, _log);                    
                 case "onedrive":
                     return new OneDriveFileSystem(_config, _authCallbackDispatcher, _log);
                 default:
