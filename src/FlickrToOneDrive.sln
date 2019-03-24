@@ -13,7 +13,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlickrToOneDrive.Flickr", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlickrToOneDrive.OneDrive", "FlickrToOneDrive.OneDrive\FlickrToOneDrive.OneDrive.csproj", "{431B5850-8458-40FC-A338-D259AAFA7B2C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlickrToOneDrive.Migrations.Startup", "FlickrToOneDrive.Migrations.Startup\FlickrToOneDrive.Migrations.Startup.csproj", "{24442E51-4CF5-4553-AE99-934479403061}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlickrToOneDrive.Migrations.Startup", "FlickrToOneDrive.Migrations.Startup\FlickrToOneDrive.Migrations.Startup.csproj", "{24442E51-4CF5-4553-AE99-934479403061}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlickrToOneDrive.Tests", "FlickrToOneDrive.Tests\FlickrToOneDrive.Tests.csproj", "{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -155,6 +157,26 @@ Global
 		{24442E51-4CF5-4553-AE99-934479403061}.Release|x64.Build.0 = Release|Any CPU
 		{24442E51-4CF5-4553-AE99-934479403061}.Release|x86.ActiveCfg = Release|Any CPU
 		{24442E51-4CF5-4553-AE99-934479403061}.Release|x86.Build.0 = Release|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Debug|ARM.Build.0 = Debug|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Debug|x64.Build.0 = Debug|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Debug|x86.Build.0 = Debug|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Release|ARM.ActiveCfg = Release|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Release|ARM.Build.0 = Release|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Release|ARM64.Build.0 = Release|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Release|x64.ActiveCfg = Release|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Release|x64.Build.0 = Release|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Release|x86.ActiveCfg = Release|Any CPU
+		{F7AD84B5-A4DB-4834-A905-CF2532AD23C6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
