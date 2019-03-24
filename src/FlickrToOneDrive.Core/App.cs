@@ -4,6 +4,7 @@ using FlickrToOneDrive.Contracts;
 using FlickrToOneDrive.Contracts.Interfaces;
 using FlickrToOneDrive.Contracts.Models;
 using FlickrToOneDrive.Core.Services;
+using FlickrToOneDrive.Flickr;
 using Moq;
 using MvvmCross;
 using MvvmCross.IoC;
@@ -20,7 +21,8 @@ namespace FlickrToOneDrive.Core
         }
 
         private void InitializeRealClasses()
-        {          
+        {
+            Mvx.IoCProvider.ConstructAndRegisterSingleton<IFlickrClient, FlickrClient>();
             Mvx.IoCProvider.RegisterType<ICloudFileSystemFactory, CloudFileSystemFactory>();
             Mvx.IoCProvider.LazyConstructAndRegisterSingleton<ICloudCopyService, CloudCopyService>();
             Mvx.IoCProvider.RegisterSingleton<IAuthenticationCallbackDispatcher>(new AuthenticationCallbackDispatcher());            
@@ -75,6 +77,7 @@ namespace FlickrToOneDrive.Core
             mockedCloudFactory.Setup(x => x.Create(It.Is<string>((s) => s == "flickr"))).Returns(mockedFlickr.Object);
 
             Mvx.IoCProvider.RegisterSingleton(mockedCloudFactory.Object);
+            Mvx.IoCProvider.ConstructAndRegisterSingleton<IFlickrClient, FlickrClient>();
             Mvx.IoCProvider.RegisterSingleton<IAuthenticationCallbackDispatcher>(new AuthenticationCallbackDispatcher());
             Mvx.IoCProvider.RegisterType<ICloudCopyService, CloudCopyService>();
 

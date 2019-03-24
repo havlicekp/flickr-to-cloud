@@ -16,16 +16,16 @@ namespace FlickrToOneDrive.Flickr
     {
         private readonly IConfiguration _config;
         private readonly ILogger _log;
-        private FlickrClient _flickrClient;
+        private IFlickrClient _flickrClient;
         private bool _isAuthenticated;
         private readonly string _callbackUrl;
 
-        public FlickrFileSystem(IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher, ILogger log)
+        public FlickrFileSystem(IFlickrClient flickrClient, IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher, ILogger log)
         {
+            _flickrClient = flickrClient;
             _config = config;
             _log = log.ForContext(GetType());
-            callbackDispatcher.Register(this);
-            _callbackUrl = _config["flickr.callbackUrl"];
+            callbackDispatcher.Register(this);            
         }
 
         public async Task<File[]> GetFiles()
@@ -78,10 +78,6 @@ namespace FlickrToOneDrive.Flickr
             try
             {
                 _log.Information("Getting authentication URL for Flickr");
-
-                var clientId = _config["flickr.clientId"];
-                var clientSecret = _config["flickr.clientSecret"];
-                var scope = _config["flickr.scope"];
 
                 _flickrClient = new FlickrClient(clientId, clientSecret, scope, _callbackUrl, _log);
                 var url = await _flickrClient.GetAuthenticationUrl();

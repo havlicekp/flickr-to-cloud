@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using FlickrToOneDrive.Contracts.Interfaces;
 using Newtonsoft.Json.Linq;
 using Open.OAuth;
 using Serilog;
 
 namespace FlickrToOneDrive.Flickr
 {
-    public class FlickrClient
+    public class FlickrClient : IFlickrClient
     {
         private readonly string _clientId;
         private readonly string _clientSecret;
@@ -27,13 +28,14 @@ namespace FlickrToOneDrive.Flickr
         private const string _flickrOauthAccessTokenUrl = "https://www.flickr.com/services/oauth/access_token";
         private const string _flickrRestUrl = "https://api.flickr.com/services/rest";
 
-        public FlickrClient(string clientId, string clientSecret, string scope, string callbackUrl, ILogger log)
+        public FlickrClient(ILogger log, IConfiguration config)
         {
-            _clientId = clientId;
-            _clientSecret = clientSecret;
-            _scope = scope;
-            _callbackUrl = callbackUrl;
             _log = log.ForContext(GetType());
+
+            _clientId = config["flickr.clientId"];
+            _clientSecret = config["flickr.clientSecret"];
+            _scope = config["flickr.scope"];
+            _callbackUrl = config["flickr.callbackUrl"];            
         }
 
         public async Task<bool> Authenticate(string authCode)
@@ -45,7 +47,7 @@ namespace FlickrToOneDrive.Flickr
             return true;
         }
 
-        public async Task<string> GetAuthenticationUrl()
+        public async Task<string> GetAuthorizeUrl()
         {
             _requestToken = await OAuthClient.GetRequestTokenAsync(_flickrOauthRequestTokenUrl, _clientId, _clientSecret, _callbackUrl);
             var result = string.Format(_flickrOauthAuthenticate, _requestToken.Token, _scope);
@@ -68,7 +70,7 @@ namespace FlickrToOneDrive.Flickr
             return await FlickrGet(parameters);
         }
 
-        public async Task<string> TestLogin()
+        private async Task<string> TestLogin()
         {
             var parameters = new FlickrParams()
             {
