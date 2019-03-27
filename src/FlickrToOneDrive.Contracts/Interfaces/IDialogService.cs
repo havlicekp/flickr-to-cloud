@@ -5,6 +5,7 @@ namespace FlickrToOneDrive.Contracts.Interfaces
     public interface IDialogService
     {
         Task ShowUrl(string url);
-        Task ShowDialog(string title, string content);
+        Task<DialogResult> ShowDialog(string title, string text);
+        Task<DialogResult> ShowDialog(string title, string text, string primaryButtonText, string closeButtonText);
     }
 }

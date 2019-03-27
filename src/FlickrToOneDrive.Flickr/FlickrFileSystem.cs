@@ -15,7 +15,7 @@ namespace FlickrToOneDrive.Flickr
     {
         private readonly IConfiguration _config;
         private readonly ILogger _log;
-        private IFlickrClient _flickrClient;
+        private readonly IFlickrClient _flickrClient;
         private bool _isAuthenticated;
 
         public FlickrFileSystem(IFlickrClient flickrClient, IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher, ILogger log)
@@ -91,8 +91,11 @@ namespace FlickrToOneDrive.Flickr
         public async Task HandleAuthenticationCallback(Uri callbackUri)
         {
             try
-            {
-                _isAuthenticated = await _flickrClient.AuthenticateFromCallbackUrl(callbackUri.AbsoluteUri);                
+            {                
+                if (_flickrClient.IsFlickrCallbackUrl(callbackUri.AbsoluteUri))
+                {
+                    _isAuthenticated = await _flickrClient.AuthenticateFromCallbackUrl(callbackUri.AbsoluteUri);
+                }
             }
             catch (Exception e)
             {
@@ -112,5 +115,19 @@ namespace FlickrToOneDrive.Flickr
             throw new NotImplementedException();
         }
 
+        public Task<bool> FolderExists(string folder)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> CreateFolder(string folder)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool FolderExists()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

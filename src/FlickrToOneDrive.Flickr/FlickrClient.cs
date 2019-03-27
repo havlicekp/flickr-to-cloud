@@ -36,10 +36,8 @@ namespace FlickrToOneDrive.Flickr
             _clientId = config["flickr.clientId"];
             _clientSecret = config["flickr.clientSecret"];
             _scope = config["flickr.scope"];
-            _callbackUrl = config["flickr.callbackUrl"];            
+            _callbackUrl = config["flickr.callbackUrl"];
         }
-
-        public string CallbackUrl => _callbackUrl;
 
         public async Task<bool> AuthenticateFromCallbackUrl(string callbackUrl)
         {
@@ -68,7 +66,7 @@ namespace FlickrToOneDrive.Flickr
         {
             _log.Information("Getting authentication URL for Flickr");
 
-            _requestToken = await OAuthClient.GetRequestTokenAsync(_flickrOauthRequestTokenUrl, _clientId, _clientSecret, CallbackUrl);
+            _requestToken = await OAuthClient.GetRequestTokenAsync(_flickrOauthRequestTokenUrl, _clientId, _clientSecret, _callbackUrl);
             var result = string.Format(_flickrOauthAuthenticate, _requestToken.Token, _scope);
 
             _log.Verbose($"Authentication URL for Flickr: {result}");
@@ -125,5 +123,11 @@ namespace FlickrToOneDrive.Flickr
                 return jsonObj;
             }
         }
+
+        public bool IsFlickrCallbackUrl(string callbackUrl)
+        {
+            return callbackUrl.StartsWith(_callbackUrl);
+        }
+
     }
 }

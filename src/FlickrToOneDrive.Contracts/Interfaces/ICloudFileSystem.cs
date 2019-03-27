@@ -11,5 +11,7 @@ namespace FlickrToOneDrive.Contracts.Interfaces
         Task<string> UploadFileFromUrl(string path, File file);
         Task<OperationStatus> CheckOperationStatus(string monitorUrl);
         Task<File[]> GetFiles();
+        Task<bool> FolderExists(string folder);
+        Task<bool> CreateFolder(string folder);
     }
 }

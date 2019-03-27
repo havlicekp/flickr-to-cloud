@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -30,8 +32,9 @@ namespace FlickrToOneDrive.OneDrive
 
         public bool IsAuthenticated => _isAuthenticated;
 
-        public OneDriveFileSystem(IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher, ILogger log)
-        {            
+        public OneDriveFileSystem(IConfiguration config, IAuthenticationCallbackDispatcher callbackDispatcher,
+            ILogger log)
+        {
             _log = log.ForContext(GetType());
 
             _clientId = config["onedrive.clientId"];
@@ -39,49 +42,6 @@ namespace FlickrToOneDrive.OneDrive
             _scope = config["onedrive.scope"];
 
             callbackDispatcher.Register(this);
-        }
-
-        public async Task<string> UploadFileFromUrl(string path, File file)
-        {
-            if (_token == null)
-            {
-                throw new CloudCopyException("Can't access OneDrive, not authenticated");
-            }
-            
-            _log.Information("Uploading a file {@File}", file);
-
-            var endpoint = $"https://graph.microsoft.com/v1.0/me/drive/root:{path}:/children";
-
-            using (var request = new HttpRequestMessage(HttpMethod.Post, endpoint))
-            {
-                var fileName = Path.GetFileName(file.SourceUrl);
-                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token.AccessToken);
-                request.Headers.Add("Prefer", "respond-async");
-                request.Method = HttpMethod.Post;
-                request.Content = new StringContent($@"{{
-                    ""@microsoft.graph.sourceUrl"": ""{file.SourceUrl}"",
-                    ""name"": ""{fileName}"",
-                    ""file"": {{}}
-                }}", Encoding.UTF8, "application/json");
-
-                _log.Verbose("Request {@Request}", request);
-
-                using (var client = new HttpClient())
-                {
-                    using (var response = await client.SendAsync(request))
-                    {
-                        _log.Verbose("Response {@Response}", response);
-
-                        if (response.IsSuccessStatusCode)
-                        {
-                            return response.Headers.Location.ToString();
-                        }
-                    }
-                }
-            }
-
-            return null;
         }
 
         public async Task<OperationStatus> CheckOperationStatus(string monitorUrl)
@@ -102,7 +62,7 @@ namespace FlickrToOneDrive.OneDrive
                             _log.Verbose($"Response {content}");
 
                             var json = JObject.Parse(content);
-                            var percentageComplete = (int)double.Parse(json["percentageComplete"].ToString());
+                            var percentageComplete = (int) double.Parse(json["percentageComplete"].ToString());
                             var status = json["status"].ToString();
                             var operation = json["operation"].ToString();
                             result = new OperationStatus(percentageComplete, status, operation, true, monitorUrl);
@@ -125,7 +85,7 @@ namespace FlickrToOneDrive.OneDrive
         }
 
         public async Task HandleAuthenticationCallback(Uri callbackUri)
-        {            
+        {
             if (callbackUri.AbsoluteUri.StartsWith(_callbackUrl))
             {
                 _log.Information($"Authentication callback for OneDrive");
@@ -146,7 +106,7 @@ namespace FlickrToOneDrive.OneDrive
                     _log.Error(e, $"Error logging into OneDrive with callback URI {callbackUri.AbsoluteUri}");
                     throw new CloudCopyException("Error logging into OneDrive");
                 }
-            }            
+            }
         }
 
         public Task<string> GetAuthenticationUrl()
@@ -169,10 +129,121 @@ namespace FlickrToOneDrive.OneDrive
             }
         }
 
+        public async Task<string> UploadFileFromUrl(string path, File file)
+        {            
+            _log.Information("Uploading a file {@File}", file);
+
+            var fileName = Path.GetFileName(file.SourceUrl);
+            var requestContent = $@"{{
+                    ""@microsoft.graph.sourceUrl"": ""{file.SourceUrl}"",
+                    ""name"": ""{fileName}"",
+                    ""file"": {{}}
+                }}";
+            var response = await SendRequestAsync($"https://graph.microsoft.com/v1.0/me/drive/root:{path}:/children",
+                requestContent, HttpMethod.Post, $"Unable to upload {file.FileName} to {path}",
+                (headers) => headers.Add("Prefer", "respond-async"));
+
+            if (response.IsSuccessStatusCode)
+            {
+                return response.Headers.Location.ToString();
+            }
+
+            return null;
+        }
+
+        public async Task<bool> FolderExists(string folder)
+        {
+            _log.Information($"Checking if folder exists '{folder}'");
+
+            folder = AddSlashIfMissing(folder);
+            var response = await SendRequestAsync(
+                $"https://graph.microsoft.com/v1.0/me/drive/root:{folder}:/children",
+                null,
+                HttpMethod.Get,
+                $"Error while checking if the folder exist");
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> CreateFolder(string folder)
+        {
+            _log.Information($"Creating folder '{folder}'");
+
+            var endpoint = "";
+
+            var slashIdx = folder.LastIndexOf('/');
+            var tail = folder.Substring(slashIdx + 1);
+            if (slashIdx == 0)
+            {
+                endpoint = "https://graph.microsoft.com/v1.0/me/drive/root/children";
+            }
+            else
+            {
+                var head = folder.Remove(slashIdx);
+                endpoint = $"https://graph.microsoft.com/v1.0/me/drive/root:{head}:/children";
+            }
+
+            var requestContent = $@"{{
+                    ""name"": ""{tail}"",
+                    ""folder"": {{}},
+                    ""@microsoft.graph.conflictBehavior"": ""rename""                    
+                }}";
+
+            var response = await SendRequestAsync(endpoint,
+                requestContent, HttpMethod.Post, $"Unable to create folder '{folder}'");
+            return response.IsSuccessStatusCode;
+
+        }
+
+        private async Task<HttpResponseMessage> SendRequestAsync(string endpoint, string requestContent,
+            HttpMethod method, string errorMsg, Action<HttpRequestHeaders> headersAction = null)
+        {
+            Debug.Assert(_isAuthenticated);
+
+            try
+            {
+                using (var request = new HttpRequestMessage(method, endpoint))
+                {
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token.AccessToken);
+                    request.Content = requestContent == null
+                        ? null
+                        : new StringContent(requestContent, Encoding.UTF8, "application/json");
+                    headersAction?.Invoke(request.Headers);
+
+                    _log.Verbose("Request {@Request}", request);
+
+                    using (var client = new HttpClient())
+                    {
+                        using (var response = await client.SendAsync(request))
+                        {
+                            _log.Verbose("Response {@Response}", response);
+                            return response;
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, errorMsg);
+                throw new CloudCopyException(errorMsg);
+            }
+        }
+
+        private string AddSlashIfMissing(string path)
+        {
+            if (!path.StartsWith("/"))
+            {
+                path = "/" + path;
+            }
+
+            return path;
+        }
+
         public Task<File[]> GetFiles()
         {
             throw new NotImplementedException();
         }
-
     }
 }
+
+

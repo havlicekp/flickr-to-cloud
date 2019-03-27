@@ -78,8 +78,8 @@ namespace FlickrToOneDrive.Core.Services
                     var uploadStatusData = await _destination.UploadFileFromUrl(_destinationPath, file);
                     if (string.IsNullOrEmpty(uploadStatusData))
                     {
-                        _log.Error($"{Source.Name} returned empty monitor URL");
-                        throw new CloudCopyException($"Invalid response from {Source.Name}, aborting the upload");
+                        _log.Error($"{Destination.Name} couldn't upload URL");
+                        throw new CloudCopyException($"Invalid response from {Destination.Name}, aborting the upload.\n\nPossible causes:\nDestination folder '{_destinationPath}' does not exist\nNo internet connection");
                     }
 
                     file.UploadStatusData = uploadStatusData;

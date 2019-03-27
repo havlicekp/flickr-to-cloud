@@ -116,11 +116,13 @@ namespace FlickrToOneDrive.Core.ViewModels
             catch (CloudCopyException e)
             {
                 await _dialogService.ShowDialog("Error", e.Message);
+                StatusMessage = e.Message;
             }
             catch (Exception e)
             {
                 _log.Error(e, "Unhandled exception");
                 await _dialogService.ShowDialog("Error", "Unknown Error occured");
+                StatusMessage = "Unknown Error occured";
             }
             InProgress = false;
         }

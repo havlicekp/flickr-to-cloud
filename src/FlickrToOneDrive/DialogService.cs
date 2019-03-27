@@ -8,7 +8,7 @@ namespace FlickrToOneDrive
 {
     public class DialogService : IDialogService, IAuthenticationCallback
     {
-        private readonly LoginDialog _loginDlg = new LoginDialog();
+        private LoginDialog _loginDlg;
 
         public DialogService(IAuthenticationCallbackDispatcher callbackDispatcher)
         {
@@ -17,26 +17,45 @@ namespace FlickrToOneDrive
 
         public async Task ShowUrl(string url)
         {
-            _loginDlg.Url = url;
+            _loginDlg = new LoginDialog {Url = url};
             await _loginDlg.ShowAsync();
         }
 
-        public async Task ShowDialog(string title, string content)
+        public async Task<DialogResult> ShowDialog(string title, string text)
         {
-            ContentDialog noWifiDialog = new ContentDialog
+            var dlg = new ContentDialog
             {
                 Title = title,
-                Content = content,
-                CloseButtonText = "Ok"
+                Content = text,
+                CloseButtonText = "OK"
             };
 
-            await noWifiDialog.ShowAsync();
+            return await ShowDialog(dlg);
+        }
+
+        public async Task<DialogResult> ShowDialog(string title, string text, string primaryButtonText, string closeButtonText)
+        {
+            var dlg = new ContentDialog
+            {
+                Title = title,
+                Content = text,
+                PrimaryButtonText = primaryButtonText,
+                CloseButtonText = closeButtonText,
+            };
+
+            return await ShowDialog(dlg);
         }
 
         public Task HandleAuthenticationCallback(Uri callbackUri)
         {
-            _loginDlg.Hide();
+            _loginDlg?.Hide();
             return Task.FromResult(0);
+        }
+
+        private async Task<DialogResult> ShowDialog(ContentDialog dlg)
+        {
+            var result = await dlg.ShowAsync();
+            return (DialogResult)(int)result;
         }
     }
 }
