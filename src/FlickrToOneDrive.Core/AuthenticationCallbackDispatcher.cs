@@ -14,12 +14,22 @@ namespace FlickrToOneDrive.Core
             callbacks.Add(callback);
         }
 
-        public async Task DispatchUriCallback(Uri uri)
+        public void Unregister(IAuthenticationCallback callback)
+        {
+            callbacks.Remove(callback);
+        }
+
+        public async Task<bool> DispatchUriCallback(Uri uri)
         {
             foreach (var callback in callbacks)
             {
-                await callback.HandleAuthenticationCallback(uri);
+                if (await callback.HandleAuthenticationCallback(uri))
+                {
+                    return true;
+                }
             }
+
+            return false;
         }
     }
 }

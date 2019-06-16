@@ -1,7 +1,7 @@
-﻿using FlickrToOneDrive.Contracts.Exceptions;
+﻿using FlickrToOneDrive.Clouds.Flickr;
+using FlickrToOneDrive.Contracts.Exceptions;
 using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Flickr;
-using FlickrToOneDrive.OneDrive;
+using FlickrToOneDrive.Clouds.OneDrive;
 using MvvmCross;
 using Serilog;
 
@@ -11,13 +11,13 @@ namespace FlickrToOneDrive.Core
     {
         private readonly IConfiguration _config;
         private readonly ILogger _log;
-        private readonly IAuthenticationCallbackDispatcher _authCallbackDispatcher;
+        private readonly IStorageService _storageService;
 
-        public CloudFileSystemFactory(IConfiguration config, ILogger log, IAuthenticationCallbackDispatcher authCallbackDispatcher)
+        public CloudFileSystemFactory(IConfiguration config, ILogger log, IStorageService storageService)
         {
             _config = config;
             _log = log;
-            _authCallbackDispatcher = authCallbackDispatcher;
+            _storageService = storageService;
         }
 
         public ICloudFileSystem Create(string cloudId)
@@ -26,9 +26,9 @@ namespace FlickrToOneDrive.Core
             {
                 case "flickr":
                     var flickrClient = Mvx.IoCProvider.Resolve<IFlickrClient>();
-                    return new FlickrFileSystem(flickrClient, _config, _authCallbackDispatcher, _log);                    
+                    return new FlickrFileSystem(flickrClient, _log);
                 case "onedrive":
-                    return new OneDriveFileSystem(_config, _authCallbackDispatcher, _log);
+                    return new OneDriveFileSystem(_config, _log, _storageService);
                 default:
                     throw new CloudCopyException($"Unknown cloud identifier '{cloudId}'");
             }

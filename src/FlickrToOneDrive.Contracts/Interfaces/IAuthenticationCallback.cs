@@ -5,6 +5,6 @@ namespace FlickrToOneDrive.Contracts.Interfaces
 {
     public interface IAuthenticationCallback
     {
-        Task HandleAuthenticationCallback(Uri callbackUri);
+        Task<bool> HandleAuthenticationCallback(Uri callbackUri);
     }
 }

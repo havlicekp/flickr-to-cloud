@@ -3,9 +3,9 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using FlickrToOneDrive.Contracts.Exceptions;
+using FlickrToOneDrive.Contracts;
 using FlickrToOneDrive.Contracts.Interfaces;
-using Microsoft.EntityFrameworkCore.Internal;
+using FlickrToOneDrive.Contracts.Models;
 using MvvmCross.Commands;
 using MvvmCross.Navigation;
 using MvvmCross.ViewModels;
@@ -15,32 +15,82 @@ namespace FlickrToOneDrive.Core.ViewModels
 {
     public class DestinationFolderViewModel : MvxViewModel<Setup>
     {
-        private readonly ICloudCopyService _copyService;
         private readonly IDialogService _dialogService;
         private readonly ILogger _log;
         private Setup _setup;
         private bool _checkingFolder;
-        private string _folder;
+        private MvxObservableCollection<string> _folders = new MvxObservableCollection<string>();
+        private string _currentPath;
 
-        public DestinationFolderViewModel(IMvxNavigationService navigationService, ICloudCopyService copyService, IDialogService dialogService, ILogger log)
+        public DestinationFolderViewModel(IMvxNavigationService navigationService, IDialogService dialogService, ILogger log)
         {
-            _copyService = copyService;
             _dialogService = dialogService;
             _log = log.ForContext(GetType());
 
             SetDestinationFolderCommand = new MvxAsyncCommand(async () =>
             {
-                if (string.IsNullOrEmpty(_folder) || _folder == "/" || await EnsureFolderExists())
+                if (String.IsNullOrEmpty(SelectedFolder) || (SelectedFolder == ".."))
                 {
-                    if (!_folder.StartsWith("/"))
-                    {
-                        _folder = "/" + _folder;
-                    }
+                    await _dialogService.ShowDialog("Error", "Please select a folder");
+                    return;
+                }
 
-                    _setup.DestinationFolder = _folder;
-                    await navigationService.Navigate<ProgressViewModel, Setup>(_setup);
+                using (var db = new CloudCopyContext())
+                {
+                    var session = db.Sessions.First(s => s.Id == _setup.Session.Id);
+                    session.DestinationFolder = GetFolderPath(SelectedFolder);
+                    session.State = SessionState.DestinationFolderSet;
+                    db.SaveChanges();
+                    _setup.Session = session;
+                }
+
+                await navigationService.Navigate<UploadViewModel, Setup>(_setup);
+            });
+
+            CreateFolderCommand = new MvxAsyncCommand(async () =>
+            {
+                var folder = await _dialogService.ShowInputDialog("New Folder", "Please enter a folder name:", ValidateAndCreateFolder);
+                if (!string.IsNullOrEmpty(folder))
+                {
+                    var insertIndex = 0;
+                    if (_folders.Count > 0 && _folders[0] == "..")
+                        insertIndex = 1;
+                    _folders.Insert(insertIndex, folder);
                 }
             });
+
+            OpenFolderCommand = new MvxAsyncCommand(async () =>
+            {
+                await OpenFolder(SelectedFolder);
+            });
+        }
+
+        private async Task OpenFolder(string folder)
+        {
+            if (folder == "..")
+            {
+                var parts = _currentPath.Split('/');
+                if (parts.Length <= 2)
+                    _currentPath = "/";
+                else
+                    _currentPath = string.Join("/", parts, 0, parts.Length - 1);
+            }
+            else
+            {
+                _currentPath = GetFolderPath(folder);
+            }
+            var folders = await _setup.Destination.GetSubFolders(_currentPath);
+            _folders.Clear();
+            if (_currentPath != "/")
+                _folders.Add("..");
+            if (folders.Length > 0)
+                _folders.AddRange(folders);
+        }
+
+        public override async void ViewAppeared()
+        {
+            base.ViewAppeared();
+            await OpenFolder("/");
         }
 
         public bool CheckingFolder
@@ -60,13 +110,29 @@ namespace FlickrToOneDrive.Core.ViewModels
 
         }
 
-        public string DestinationFolder
+        public ICommand OpenFolderCommand
         {
-            get => _folder;
+            get; set;
+        }
+
+        public ICommand CreateFolderCommand
+        {
+            get; set;
+        }
+
+        public string SelectedFolder
+        {
+            get; set; 
+
+        }
+
+        public MvxObservableCollection<string> Folders
+        {
+            get => _folders;
             set
             {
-                _folder = value;
-                RaisePropertyChanged(() => DestinationFolder);
+                _folders = value;
+                RaisePropertyChanged(() => Folders);
             }
         }
 
@@ -75,57 +141,55 @@ namespace FlickrToOneDrive.Core.ViewModels
             _setup = setup;
         }
 
-        private async Task<bool> EnsureFolderExists()
+        private async Task<(bool result, string error)> ValidateAndCreateFolder(string folder)
         {
-            char invalidChar = InvalidCharacterInPath();
-            if (invalidChar != default(char))
-            {
-                await _dialogService.ShowDialog("Error", $"Folder name contains invalid character: {invalidChar}");
-                return false;
-            }
+            if (string.IsNullOrEmpty(folder))
+                return (false, $"Folder name can't be empty");
+
+            if (InvalidCharacterInPath(folder, out var invalidChar))
+                return (false, $"Folder name contains invalid character: {invalidChar}");
 
             CheckingFolder = true;
             try
             {
-                var folderExist = await _copyService.Destination.FolderExists(_folder);
-                if (!folderExist)
-                {
-                    var dlgResult = await _dialogService.ShowDialog("Error",
-                        $"The folder '{_folder}' does not exist. Create?", "Yes", "Cancel");
-                    if (dlgResult == DialogResult.Primary)
-                    {
-                        var folderCreated = await _copyService.Destination.CreateFolder(_folder);
-                        if (!folderCreated)
-                        {
-                            await _dialogService.ShowDialog("Error", "Unable to create the folder");
-                            return false;
-                        }
-                    }                            
-                }
+                var folderExist = await _setup.Destination.FolderExists(GetFolderPath(folder));
+                if (folderExist)
+                    return (false, $"The folder '{folder}' already exists");
 
-                return true;
-            }
-            catch (CloudCopyException ce)
-            {
-                await _dialogService.ShowDialog("Error", ce.Message);
+                var folderCreated = await _setup.Destination.CreateFolder(GetFolderPath(folder));
+                if (!folderCreated)
+                    return (false, "Unable to create the folder");
+
+                return (true, "");
             }
             catch (Exception e)
             {
-                await _dialogService.ShowDialog("Error", "Unknown error");
                 _log.Error(e, e.Message);
+                return (false, e.Message);
             }
             finally
             {
                 CheckingFolder = false;
             }
-
-            return false;
         }
 
-        private char InvalidCharacterInPath()
+        private bool InvalidCharacterInPath(string path, out char invalidChar)
         {
-            var pathInvalidCharacters = Path.GetInvalidFileNameChars().Except(new[] { '/' });
-            return pathInvalidCharacters.FirstOrDefault(c => _folder.Contains(c));
+            var pathInvalidCharacters = Path.GetInvalidFileNameChars().Except(new[] { '/', '\\' });
+            invalidChar = pathInvalidCharacters.FirstOrDefault(c => path.Contains(c));
+            return invalidChar != default(char);
+        }
+
+        private string GetFolderPath(string subFolder)
+        {
+            // '/'
+            // '/Folder'
+            // '/Folder/SubFolder'
+            if (subFolder == "/")
+                return subFolder;
+            if (_currentPath == "/")
+                return $"/{subFolder}";
+            return $"{_currentPath}/{subFolder}";
         }
     }
 }

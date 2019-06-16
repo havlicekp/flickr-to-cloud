@@ -1,10 +1,11 @@
-﻿using System.Net;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
-using FlickrToOneDrive.Contracts;
+using FlickrToOneDrive.Clouds.Flickr;
 using FlickrToOneDrive.Contracts.Interfaces;
 using FlickrToOneDrive.Contracts.Models;
+using FlickrToOneDrive.Contracts.Progress;
 using FlickrToOneDrive.Core.Services;
-using FlickrToOneDrive.Flickr;
 using Moq;
 using MvvmCross;
 using MvvmCross.IoC;
@@ -25,14 +26,14 @@ namespace FlickrToOneDrive.Core
             Mvx.IoCProvider.ConstructAndRegisterSingleton<IFlickrClient, FlickrClient>();
             Mvx.IoCProvider.RegisterType<ICloudFileSystemFactory, CloudFileSystemFactory>();
             Mvx.IoCProvider.LazyConstructAndRegisterSingleton<ICloudCopyService, CloudCopyService>();
-            Mvx.IoCProvider.RegisterSingleton<IAuthenticationCallbackDispatcher>(new AuthenticationCallbackDispatcher());            
+            Mvx.IoCProvider.RegisterSingleton<IAuthenticationCallbackDispatcher>(new AuthenticationCallbackDispatcher());
             RegisterCustomAppStart<AppStart>();
         }
 
         private void InitializeMockedClasses()
         {
             var mockedFlickr = new Mock<ICloudFileSystem>();
-            mockedFlickr.Setup(x => x.GetFiles()).Returns(async () =>
+            mockedFlickr.Setup(x => x.GetFiles(It.IsAny<SessionFilesOrigin>(), It.IsAny<CancellationToken>(), It.IsAny<Action<ReadingFilesProgress>>())).Returns(async () =>
             {
                 var files = new File[]
                 {
@@ -45,10 +46,20 @@ namespace FlickrToOneDrive.Core
                     {
                         SourceUrl = @"https://farm2.staticflickr.com/1597/26098709134_baa6a392e9_o.png",
                         FileName = "20160428_153952"
+                    },
+                    new File
+                    {
+                        SourceUrl = @"https://farm2.staticflickr.com/1597/26098709134_baa6a392e9_o.png",
+                        FileName = "20160428_153952"
+                    },
+                    new File
+                    {
+                        SourceUrl = @"https://farm2.staticflickr.com/1597/26098709134_baa6a392e9_o.png",
+                        FileName = "20160428_153952"
                     }
                 };
 
-                await Task.Delay(2000);
+                await Task.Delay(1000);
                 return files;
             });
             mockedFlickr.Setup(x => x.IsAuthenticated).Returns(true);
@@ -63,10 +74,10 @@ namespace FlickrToOneDrive.Core
                 return
                     "https://api.onedrive.com/v1.0/monitor/4sDWoX9ohvmpgkRnnZHfEgM1o0K0QFAkI2bBFZgrxAhqvhL7496sD55QNhFwcNktnLauQBwB5DhVCncGDclrMGCvA2BzkhWMpEVZaKBaNsfxGMFeaa4_ta6hang-Ob_kK8K98Xa-qfsNcix031Vp7p9K1h7MoOfvm_jatr9jG96x4MiH_WPkPQ4WZvMeUhJPlh";
             });
-            mockedOneDrive.Setup(x => x.CheckOperationStatus(It.IsAny<string>())).Returns<string>(async (monitorUrl) =>
+            mockedOneDrive.Setup(x => x.CheckOperationStatus(It.IsAny<File>())).Returns<string>(async (monitorUrl) =>
             {
                 await Task.Delay(2000);
-                return new OperationStatus(20, "inProgress", "DownloadUrl", true, monitorUrl);
+                return new OperationStatus(20, true, "");
             });
             mockedOneDrive.Setup(x => x.IsAuthenticated).Returns(true);
             mockedOneDrive.Setup(x => x.GetAuthenticationUrl()).Returns(Task.FromResult("about:blank"));
@@ -79,7 +90,7 @@ namespace FlickrToOneDrive.Core
             Mvx.IoCProvider.RegisterSingleton(mockedCloudFactory.Object);
             Mvx.IoCProvider.ConstructAndRegisterSingleton<IFlickrClient, FlickrClient>();
             Mvx.IoCProvider.RegisterSingleton<IAuthenticationCallbackDispatcher>(new AuthenticationCallbackDispatcher());
-            Mvx.IoCProvider.RegisterType<ICloudCopyService, CloudCopyService>();
+            Mvx.IoCProvider.LazyConstructAndRegisterSingleton<ICloudCopyService, CloudCopyService>();
 
             RegisterCustomAppStart<AppStart>();
         }

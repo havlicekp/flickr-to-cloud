@@ -6,11 +6,11 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:MvvmCross.Platforms.Uap.Views"
-    xmlns:contracts="using:FlickrToOneDrive.Contracts"
     xmlns:converters="using:FlickrToOneDrive.Converters"
     xmlns:models="using:FlickrToOneDrive.Contracts.Models"
     mc:Ignorable="d"
-    Background="{ThemeResource SystemControlPageBackgroundBaseLowBrush}">
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    >
     <Page.Resources>
         <converters:DateTimeConverter x:Name="DateTimeConverter" />
     </Page.Resources>
@@ -26,19 +26,18 @@
 
         <local:Header Grid.Row="0" />
 
-        <StackPanel Grid.Row="1">
+        <StackPanel Grid.Row="1" Margin="40 0 40 20">
             <TextBlock Style="{StaticResource Heading}">Sessions</TextBlock>
             <TextBlock Style="{StaticResource Message}">
                     Existing session(s) found. Please click Check Status button to see session progress. If you want to start a new session, click New Session.
             </TextBlock>
         </StackPanel>
 
-        <ListView Grid.Row="2" ItemsSource="{x:Bind Vm.Sessions, Mode=OneWay}" 
-                  HorizontalAlignment="Center" 
-                  MinWidth="400" 
+        <ListView Grid.Row="2" 
+                  ItemsSource="{x:Bind Vm.Sessions, Mode=OneWay}"                                     
                   BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
                   BorderThickness="2"
-                  Margin="0 0 0 15"
+                  Margin="40 0 40 10"
                   SelectedItem="{x:Bind Vm.SelectedSession, Mode=TwoWay}"
                   KeyDown="OnKeyDown">
             <ListView.ItemTemplate>
@@ -55,10 +54,10 @@
                         <Image Grid.RowSpan="2" Grid.Column="0" x:Name="ToolkitLogo"                                
                                        Width="18"
                                        Height="18"
-                                       Margin="0,0,18,0"
+                                       Margin="0,0,16,0"
                                        Source="ms-appx:///Assets/logo.png" />
                         <TextBlock Grid.Column="1" Grid.Row="0" Text="{x:Bind}" />
-                        <StackPanel Grid.Column="1" Grid.Row="1"  Orientation="Horizontal">
+                        <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal">
                             <TextBlock>
                                 <Run>Destination Folder: </Run>
                                 <Run />
@@ -71,14 +70,14 @@
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    <Setter Property="Padding" Value="12,12,24,12" />
+                    <Setter Property="Padding" Value="12,6,24,6" />
                 </Style>
             </ListView.ItemContainerStyle>
         </ListView>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button Style="{StaticResource Button}" Command="{x:Bind Vm.CheckStatusCommand}">Check Status</Button>
-            <Button Style="{StaticResource Button}" Command="{x:Bind Vm.NewSessionCommand}">New Session</Button>
+            <Button Command="{x:Bind Vm.ResumeSessionCommand}">Resume Session</Button>
+            <Button Command="{x:Bind Vm.NewSessionCommand}">New Session</Button>
         </StackPanel>
 
         <local:Footer Grid.Row="4"/>

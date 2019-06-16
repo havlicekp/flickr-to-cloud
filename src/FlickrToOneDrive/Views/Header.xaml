@@ -8,15 +8,16 @@
     d:DesignHeight="300"
     d:DesignWidth="400">
 
-    <StackPanel Orientation="Vertical" Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}" >
-        <Image Stretch="UniformToFill" Height="90" Width="90" Margin="40 60 40 20" Source="/Assets/logo.png"></Image>
+    <StackPanel Orientation="Horizontal" Background="{ThemeResource SystemChromeMediumColor}" >
+        <Image Stretch="UniformToFill" Height="42" Width="42" Margin="22 22 20 22" Source="/Assets/logo.png"></Image>
         <TextBlock 
             HorizontalTextAlignment="Center" 
-            FontSize="23" 
-            Margin="0 0 0 40" 
-            FontFamily="Sergoe UI" 
-            Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}">
-            Flickr To OneDrive
+            VerticalAlignment="Center"
+            FontSize="22"
+            FontWeight="Normal"
+            FontFamily="Sergoe UI"
+            Foreground="{ThemeResource ApplicationForegroundThemeBrush}">
+            Flickr To Cloud
         </TextBlock>
     </StackPanel>
 

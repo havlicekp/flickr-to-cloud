@@ -1,11 +1,13 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace FlickrToOneDrive.Contracts.Interfaces
 {
     public interface IDialogService
     {
         Task ShowUrl(string url);
-        Task<DialogResult> ShowDialog(string title, string text);
+        Task<string> ShowInputDialog(string title, string text, ValidationCallback<string> validationCallback);
+        Task<DialogResult> ShowDialog(string title, string text, bool copyable = false);
         Task<DialogResult> ShowDialog(string title, string text, string primaryButtonText, string closeButtonText);
     }
 }

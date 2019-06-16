@@ -1,188 +1,336 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using FlickrToOneDrive.Contracts;
 using FlickrToOneDrive.Contracts.Exceptions;
+using FlickrToOneDrive.Contracts.Extensions;
 using FlickrToOneDrive.Contracts.Interfaces;
 using FlickrToOneDrive.Contracts.Models;
+using FlickrToOneDrive.Contracts.Progress;
+using FlickrToOneDrive.Core.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 namespace FlickrToOneDrive.Core.Services
 {
-    public class CloudCopyService : ICloudCopyService
+    public partial class CloudCopyService : ICloudCopyService
     {
-        private readonly ICloudFileSystem _source;
-        private readonly ICloudFileSystem _destination;
-        private int _sessionId;
         private readonly ILogger _log;
-        private string _destinationPath;
+        private readonly IStorageService _storageService;
 
-        public event Action<int> UploadProgressHandler;
-
-        public event Action ReadingSourceHandler;
-
+        public event Action<UploadProgress> UploadProgressHandler;
+        public event Action<UploadProgress> UploadFinishedHandler;
+        public event Action ReadingFilesStartingHandler;
+        public event Action<UploadProgress> UploadStartingHandler;
+        public event Action CreatingFoldersHandler;
         public event Action NothingToUploadHandler;
+        public event Action<int, int> CheckingStatusHandler;
+        public event Action<int, int, int, int> CheckingStatusFinishedHandler;
+        public event Action<ReadingFilesProgress> ReadingFilesProgressHandler;
 
-        public event Action<int> CheckingStatusHandler;
-
-        public event Action<int, int, int> CheckingStatusFinishedHandler;
-
-        public CloudCopyService(ICloudFileSystemFactory factory, IConfiguration config, ILogger log)
+        public CloudCopyService(ILogger log, IStorageService storageService)
         {
-            var sourceCloudId = config["config.sourceCloudId"];
-            var destinationCloudId = config["config.destinationCloudId"];
-
-            _source = factory.Create(sourceCloudId);
-            _destination = factory.Create(destinationCloudId);
-
             _log = log.ForContext(GetType());
+            _storageService = storageService;
         }
 
-        public ICloudFileSystem Destination => _destination;
-
-        public ICloudFileSystem Source => _source;
-
-        public int CreatedSessionId => _sessionId;
-
-        public bool IsAuthenticated => _source.IsAuthenticated && _destination.IsAuthenticated;
-
-        public async Task Copy(string destinationPath)
+        public async Task<bool> Copy(Setup setup, bool retryFailed, CancellationToken ct)
         {
-            _destinationPath = destinationPath;
-
-            ReadingSourceHandler?.Invoke();
-
-            var sourceFiles = await _source.GetFiles();
-            if (sourceFiles.Length > 0)
+            // Read source files
+            if (setup.Session.State <= SessionState.ReadingSource)
             {
-                _sessionId = CreateSession(destinationPath, sourceFiles);
-                await ResumeUpload(_sessionId);
+                await ReadSource(setup, ct);
             }
-            else
+
+            // Create destination folders
+            if (setup.Session.FilesOrigin.HasFlag(SessionFilesOrigin.Structured)
+                && (setup.Session.Mode == SessionMode.Remote)
+                && (setup.Session.State <= SessionState.CreatingFolders))
             {
-                NothingToUploadHandler?.Invoke();
-                _log.Warning("No files found on Flickr");
+                CreatingFoldersHandler?.Invoke();
+                CreateFolders(setup, ct);
             }
+
+            // Copy source to destination
+            return await ResumeUpload(setup, retryFailed, ct);
         }
 
-        public async Task ResumeUpload(int sessionId)
+        public async Task CheckStatus(Setup setup, CancellationToken ct)
         {
             using (var db = new CloudCopyContext())
             {
-                var fileCount = db.Files.Count(f => f.SessionId == sessionId);
-                var files = db.Files.Where(f => string.IsNullOrEmpty(f.UploadStatusData) && f.SessionId == sessionId);
-                var progress = 0;
-                foreach (var file in files)
-                {
-                    var uploadStatusData = await _destination.UploadFileFromUrl(_destinationPath, file);
-                    if (string.IsNullOrEmpty(uploadStatusData))
-                    {
-                        _log.Error($"{Destination.Name} couldn't upload URL");
-                        throw new CloudCopyException($"Invalid response from {Destination.Name}, aborting the upload.\n\nPossible causes:\nDestination folder '{_destinationPath}' does not exist\nNo internet connection");
-                    }
-
-                    file.UploadStatusData = uploadStatusData;
-                    db.SaveChanges();
-
-                    UploadProgressHandler?.Invoke((int)(progress++ * 100 / fileCount));
-                }
-
-                UploadProgressHandler?.Invoke(100);
-            }
-        }
-
-        public async Task CheckStatus(int sessionId)
-        {
-            var finishedOk = 0;
-            var inProgress = 0;
-            var finishedError = 0;
-            var progress = 0;            
-
-            using (var db = new CloudCopyContext())
-            {
-                var files = db.Files.Where(f => f.SessionId == sessionId);
+                var files = db.Files.Where(f => f.SessionId == setup.Session.Id).ToList();
                 var fileCount = files.Count();
+                var progress = new StatusCheckProgress { TotalItems = fileCount };
 
                 _log.Information($"Going to check status for {fileCount} file(s)");
 
-                foreach (var f in files)
-                {
-                    switch (f.UploadStatus)
-                    {
-                        case UploadStatus.InProgress:
-                            var status = await _destination.CheckOperationStatus(f.UploadStatusData);
-                            if (status.SuccessResponseCode)
-                            {
-                                if (status.PercentageComplete == 100)
-                                {
-                                    f.UploadStatus = UploadStatus.FinishedOk;
-                                    finishedOk++;
-                                }
-                                else
-                                {
-                                    inProgress++;
-                                }
-                            }
-                            else
-                            {
-                                f.UploadStatus = UploadStatus.FinishedError;
-                                finishedError++;                                
-                            }
-                            
-                            break;
-                        case UploadStatus.FinishedOk:
-                            finishedOk++;
-                            break;
-                        case UploadStatus.FinishedError:
-                            finishedError++;
-                            break;
-                    }
+                await files.ForEachAsync(CheckFileStatus, setup, progress, ct);
 
-                    CheckingStatusHandler?.Invoke((int)(progress++ * 100 / fileCount));
-                };
-
-                var sessionFinished = files.All(f => f.UploadStatus != UploadStatus.InProgress);
+                var sessionFinished = files.All(f => f.State != FileState.InProgress);
                 if (sessionFinished)
                 {
-                    var session = db.Sessions.First(s => s.SessionId == sessionId);
-                    session.Finished = true;
+                    var session = db.Sessions.First(s => s.Id == setup.Session.Id);
+                    session.State = SessionState.Finished;
                 }
 
                 db.SaveChanges();
+
+                CheckingStatusFinishedHandler?.Invoke(progress.ProcessedWithSuccess, progress.ProcessedWithError, progress.InProgress, (int)((progress.ProcessedWithSuccess + progress.ProcessedWithError) * 100 / fileCount));
             }
-            
-            CheckingStatusFinishedHandler?.Invoke(finishedOk, finishedError, inProgress);
         }
 
-        private int CreateSession(string destinationPath, File[] sourceFiles)
+        private async Task ReadSource(Setup setup, CancellationToken ct)
         {
-            int sessionId;
-            using (var db = new CloudCopyContext())
+            try
             {
-                db.Database.Migrate();
+                ReadingFilesStartingHandler?.Invoke();
 
-                using (var transaction = db.Database.BeginTransaction())
+                setup.Session.UpdateState(SessionState.ReadingSource);
+
+                var sourceFiles = await setup.Source.GetFiles(setup.Session.FilesOrigin, ct, (progress) =>
                 {
-                    var session = new Session { DestinationFolder = destinationPath, Started = DateTime.Now };
-                    db.Sessions.Add(session);
-                    db.SaveChanges();
+                    ReadingFilesProgressHandler?.Invoke(progress);
+                });
 
-                    foreach (var file in sourceFiles)
+                if (sourceFiles.Length > 0)
+                {
+                    using (var db = new CloudCopyContext())
                     {
-                        file.Session = session;
-                        file.SessionId = session.SessionId;
-                        db.Files.Add(file);
+                        using (var transaction = await db.Database.BeginTransactionAsync())
+                        {
+                            //db.ChangeTracker.AutoDetectChangesEnabled = false;
+                            foreach (var file in sourceFiles)
+                            {
+                                file.SessionId = setup.Session.Id;
+                            }
+                            await db.Files.AddRangeAsync(sourceFiles);
+
+                            var session = db.Sessions.First(s => s.Id == setup.Session.Id);
+                            session.State = setup.Session.State = SessionState.Uploading;
+                            await db.SaveChangesAsync();
+                            transaction.Commit();
+                        }
                     }
-
-                    db.SaveChanges();
-                    db.Database.CommitTransaction();
-
-                    sessionId = session.SessionId;
+                }
+                else
+                {
+                    NothingToUploadHandler?.Invoke();
+                    _log.Warning($"No files found on {setup.Source.Name}");
                 }
             }
-
-            return sessionId;
+            catch (OperationCanceledException)
+            {
+                _log.Information("ReadSource cancelled");
+                throw;
+            }
+            catch (Microsoft.Graph.ServiceException e)
+            {
+                if (e.InnerException != null && e.InnerException is TaskCanceledException)
+                {
+                    _log.Information($"ReadingSource cancelled");
+                    throw new OperationCanceledException();
+                }
+                else
+                    throw new ReadingSourceException("Error getting files from Flickr", e, _log);
+            }
+            catch (Exception e)
+            {
+                throw new ReadingSourceException("Error getting files from Flickr", e, _log);
+            }
         }
+
+        private async Task<bool> ResumeUpload(Setup setup, bool retryFailed, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();            
+
+            //setup.Session.UpdateState(SessionState.Uploading);
+            
+            var files = new List<File>();
+            files.AddRange(setup.Session.GetFiles(FileState.None));
+            if (retryFailed)
+            {
+                var failedFiles = setup.Session.GetFiles(FileState.Failed);
+                files.AddRange(failedFiles);
+            }
+
+            var finishedState = setup.Session.Mode == SessionMode.Local ? FileState.Finished : FileState.InProgress;
+            var finishedFilesCount = setup.Session.GetFiles(finishedState).Count;
+            var progress = new UploadProgress { TotalItems = files.Count(), ProcessedItems = finishedFilesCount };
+
+            UploadStartingHandler?.Invoke(progress);
+
+            if (files.Any())
+            {
+                await files.ForEachAsync(UploadFile, setup, progress, ct);
+            }
+
+            if (setup.Session.Mode == SessionMode.Local && progress.ProcessedWithError == 0 && !ct.IsCancellationRequested)
+            {
+                // All files were uploaded without any errors, local session is considered finished
+                // For remote upload, session state is set to Finished during CheckStatus
+                setup.Session.UpdateState(SessionState.Finished);
+            }
+
+            UploadFinishedHandler?.Invoke(progress);
+            return progress.ProcessedWithError == 0;
+        }
+
+        private void CreateFolders(Setup setup, CancellationToken ct)
+        {
+            setup.Session.UpdateState(SessionState.CreatingFolders);
+
+            var files = setup.Session.GetFiles(FileState.None);
+            var folders = files.Select(f => f.SourcePath).Where(p => p != "/").Distinct();
+            foreach (var folder in folders)
+            {
+                ct.ThrowIfCancellationRequested();
+                var destinationFolder = setup.Session.DestinationFolder + folder;
+                setup.Destination.CreateFolder(destinationFolder);
+            }
+        }
+
+        private async Task UploadFile(File file, Setup setup, UploadProgress progress, SemaphoreSlim semaphore, CancellationToken ct)
+        {
+            await semaphore.WaitAsync();
+
+            _log.Verbose($"Uploading file ID: {file.Id}, URL: {file.SourceUrl}");
+            var destinationFilePath = $"{setup.Session.DestinationFolder}{file.SourcePath}/{file.FileName}";
+
+            try
+            {
+                if (setup.Session.Mode == SessionMode.Local)
+                {
+                    await UploadFileLocaly(file, setup, destinationFilePath, ct);
+                }
+                else
+                {
+                    await UploadFileRemotely(file, setup, destinationFilePath, ct);
+                }
+
+                Interlocked.Increment(ref progress.ProcessedWithSuccess);
+            }
+            catch (OperationCanceledException)
+            {
+                _log.Information($"UploadFile cancelled ({file.FileName})");
+                throw;
+            }
+            catch (Microsoft.Graph.ServiceException e)
+            {
+                if (e.InnerException != null && e.InnerException is TaskCanceledException)
+                {
+                    _log.Information($"UploadFile cancelled ({file.FileName})");
+                    throw new OperationCanceledException();
+                }
+                else
+                    throw;
+            }
+            catch (Exception e)
+            {
+                using (var db = new CloudCopyContext())
+                {
+                    var dbFile = db.Files.FirstOrDefault(f => f.Id == file.Id);
+
+                    // dbFile can be null when cancelling a session
+                    if (dbFile != null)
+                    {
+                        dbFile.State = FileState.Failed;
+                        dbFile.ResponseData = e.Message;
+                        await db.SaveChangesAsync();
+                    }
+                }
+
+                Interlocked.Increment(ref progress.ProcessedWithError);
+                _log.Error(e, "Error while uploading a file", e);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+
+            Interlocked.Increment(ref progress.ProcessedItems);
+            //UploadProgressHandler?.Invoke(progress.ProcessedItems * 100 / progress.TotalItems, progress);
+            UploadProgressHandler?.Invoke(progress);
+        }
+
+        private async Task UploadFileRemotely(File file, Setup setup, string destinationFilePath, CancellationToken ct)
+        {
+            var monitorUrl = await setup.Destination.UploadFileFromUrl(destinationFilePath, file);
+            file.UpdateMonitorUrl(monitorUrl);
+            _log.Information($"UploadFileRemotely succeeded (@File)", file);
+        }
+
+        private async Task UploadFileLocaly(File file, Setup setup, string destinationFilePath, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            var localFileName = $"{Guid.NewGuid().ToString()}.tmp";            
+            try
+            {
+                await DownloadFile(file.SourceUrl, localFileName, ct);
+                await setup.Destination.UploadFile(destinationFilePath, localFileName, ct);
+                file.UpdateState(FileState.Finished);
+                _log.Information($"UploadFileLocaly succeeded (@File)", file);
+            }
+            finally
+            {
+                if (await _storageService.FileExistsAsync(localFileName))
+                    await _storageService.DeleteFileAsync(localFileName);
+            }
+        }
+
+        private async Task CheckFileStatus(File file, Setup setup, StatusCheckProgress progress, SemaphoreSlim semaphore, CancellationToken ct)
+        {
+            await semaphore.WaitAsync();
+
+            switch (file.State)
+            {
+                case FileState.InProgress:
+                    var status = await setup.Destination.CheckOperationStatus(file);
+                    file.ResponseData = status.RawResponse;
+                    if (status.SuccessResponseCode)
+                    {
+                        if (status.PercentageComplete == 100)
+                        {
+                            file.State = FileState.Finished;
+                            Interlocked.Increment(ref progress.ProcessedWithSuccess);
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref progress.InProgress);
+                        }
+                    }
+                    else
+                    {
+                        file.State = FileState.Failed;
+                        Interlocked.Increment(ref progress.ProcessedWithError);
+                    }
+
+                    break;
+                case FileState.Finished:
+                    Interlocked.Increment(ref progress.ProcessedWithSuccess);
+                    break;
+                case FileState.Failed:
+                    Interlocked.Increment(ref progress.ProcessedWithError);
+                    break;
+            }
+
+            Interlocked.Increment(ref progress.ProcessedItems);
+            CheckingStatusHandler?.Invoke(progress.ProcessedItems * 100 / progress.TotalItems, progress.ProcessedItems);
+        }
+
+        public async Task DownloadFile(string sourceUrl, string localFileName, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            using (var client = new HttpClient())
+            using (var inputStream = await client.GetStreamAsync(sourceUrl))
+            using (var outputStream = await _storageService.OpenFileStreamForWriteAsync(localFileName))
+            {
+                await inputStream.CopyToAsync(outputStream, 81920, ct);
+            }
+        }
+
     }
 }

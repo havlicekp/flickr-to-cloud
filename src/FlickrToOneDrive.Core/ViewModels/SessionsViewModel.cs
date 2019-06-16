@@ -23,7 +23,7 @@ namespace FlickrToOneDrive.Core.ViewModels
             _log = log.ForContext(GetType());
             _navigationService = navigationService;
             _dialogService = dialogService;
-            CheckStatusCommand = new MvxAsyncCommand(CheckStatus);
+            ResumeSessionCommand = new MvxAsyncCommand(ResumeSession);
             NewSessionCommand = new MvxAsyncCommand(NewSession);
             DeleteSessionCommand = new MvxAsyncCommand(DeleteSession);
         }
@@ -32,7 +32,7 @@ namespace FlickrToOneDrive.Core.ViewModels
 
         public ICommand NewSessionCommand { get; }
 
-        public ICommand CheckStatusCommand { get;  }
+        public ICommand ResumeSessionCommand { get;  }
 
         public Session SelectedSession { get; set; }
 
@@ -51,7 +51,7 @@ namespace FlickrToOneDrive.Core.ViewModels
             Sessions = new MvxObservableCollection<Session>(sessions);
         }
 
-        private async Task CheckStatus()
+        private async Task ResumeSession()
         {
             if (SelectedSession == null)
             {
@@ -59,16 +59,15 @@ namespace FlickrToOneDrive.Core.ViewModels
                 return;
             }
 
-            var setup = new Setup {Session = SelectedSession};
             _log.Information("Going to continue with existing session {SelectedSession}", SelectedSession);
-            await _navigationService.Navigate<ProgressViewModel, Setup>(setup);
+
+            await _navigationService.Navigate<LoginViewModel, Setup>(new Setup { Session = SelectedSession });
         }
 
         private async Task NewSession()
         {
-            var setup = new Setup();
             _log.Information("Going to create a new session");
-            await _navigationService.Navigate<LoginViewModel, Setup>(setup);
+            await _navigationService.Navigate<LoginViewModel, Setup>(new Setup());
         }
 
         private Task DeleteSession()

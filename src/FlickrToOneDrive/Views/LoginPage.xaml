@@ -5,9 +5,14 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:MvvmCross.Platforms.Uap.Views"
     xmlns:local="using:FlickrToOneDrive.Views"
-    mc:Ignorable="d"
-    Background="{ThemeResource SystemControlPageBackgroundBaseLowBrush}"        
+    xmlns:toolkitConverters="using:Microsoft.Toolkit.Uwp.UI.Converters"
+    mc:Ignorable="d"    
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     >
+    <!--Background="{ThemeResource SystemChromeLowColor}"-->
+    <Page.Resources>
+        <toolkitConverters:BoolNegationConverter x:Key="BoolNegationConverter"/>
+    </Page.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -16,13 +21,41 @@
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
             <local:Header />
-            <StackPanel>
-                <TextBlock Style="{StaticResource Heading}">Instructions</TextBlock>
-                <TextBlock Style="{StaticResource Message}">
-                    Please click the buttons bellow to login to both Flickr and OneDrive. Once finished the processing will continue.
-                </TextBlock>
-                <Button Style="{StaticResource Button}" Command="{Binding SourceLoginCommand}">Login to Flickr</Button>
-                <Button Style="{StaticResource Button}" Command="{Binding DestinationLoginCommand}">Login to OneDrive</Button>
+            <StackPanel Margin="40 0 40 0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource Heading}" Visibility="{Binding NewSession}">New Session</TextBlock>
+                    <TextBlock Style="{StaticResource Heading}" Visibility="{Binding NewSession, Converter={StaticResource BoolNegationConverter}}">Resume Session</TextBlock>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Message}">Please login into</TextBlock>
+                        <TextBlock Style="{StaticResource Message}" Visibility="{Binding SourceLoginNeeded}" xml:space="preserve"> Flickr and</TextBlock>
+                        <TextBlock Style="{StaticResource Message}" xml:space="preserve"> destination cloud system</TextBlock>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Visibility="{Binding SourceLoginNeeded}" HorizontalAlignment="Left">
+                    <TextBlock Style="{StaticResource Heading}">Source</TextBlock>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/Assets/Flickr.png" Width="24" Height="24"></Image>
+                        <TextBlock Margin="10 0 20 0" VerticalAlignment="Center">Flickr</TextBlock>
+                        <Button Command="{Binding SourceLoginCommand}" Width="80">Login</Button>
+                    </StackPanel>
+                </StackPanel>
+                <!--<TextBlock Margin="60 30 0 0" FontSize="20" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}">Destination</TextBlock>-->
+                <TextBlock Style="{StaticResource Heading}">Destination</TextBlock>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton IsChecked="True">
+                        <StackPanel Orientation="Horizontal" Margin="10 0 0 0">
+                            <Image Source="/Assets/OneDrive.ico" Width="24"></Image>
+                            <TextBlock Margin="10 0 20 0" VerticalAlignment="Center">OneDrive</TextBlock>
+                        </StackPanel>
+                    </RadioButton>
+                    <Button Command="{Binding DestinationLoginCommand}" Width="80">Login</Button>
+                </StackPanel>
+                <Button HorizontalAlignment="Right" Command="{Binding DestinationLoginCommand}" IsEnabled="False" Width="110" Margin="0 30 0 0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock>Continue</TextBlock>
+                        <FontIcon FontWeight="ExtraBold" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5 3 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEBE7;" FontSize="14" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </StackPanel>
         <local:Footer Grid.Row="1"/>

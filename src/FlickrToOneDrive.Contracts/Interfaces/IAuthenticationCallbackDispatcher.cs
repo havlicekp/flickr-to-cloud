@@ -6,6 +6,7 @@ namespace FlickrToOneDrive.Contracts.Interfaces
     public interface IAuthenticationCallbackDispatcher
     {
         void Register(IAuthenticationCallback callback);
-        Task DispatchUriCallback(Uri eventArgsUri);
+        void Unregister(IAuthenticationCallback callback);
+        Task<bool> DispatchUriCallback(Uri eventArgsUri);
     }
 }

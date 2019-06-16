@@ -34,8 +34,7 @@ namespace FlickrToOneDrive.Core
                 }
                 else
                 {
-                    var setup = new Setup();
-                    _navigationService.Navigate<LoginViewModel, Setup>(setup).GetAwaiter().GetResult();
+                    _navigationService.Navigate<LoginViewModel, Setup>(new Setup()).GetAwaiter().GetResult();
                 }
 
                 return Task.FromResult(0);
@@ -51,7 +50,7 @@ namespace FlickrToOneDrive.Core
             using (var db = new CloudCopyContext())
             {
                 db.Database.Migrate();
-                var sessions = db.Sessions.Where(s => !s.Finished);
+                var sessions = db.Sessions.Where(s => s.State != SessionState.Finished);
                 return sessions.ToList();
             }
         }

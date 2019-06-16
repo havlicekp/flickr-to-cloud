@@ -2,18 +2,15 @@
 using System.Threading.Tasks;
 using Windows.UI.Xaml.Controls;
 using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Views;
+using FlickrToOneDrive.Contracts;
+using FlickrToOneDrive.Dialogs;
+using Nito.AsyncEx;
 
 namespace FlickrToOneDrive
 {
-    public class DialogService : IDialogService, IAuthenticationCallback
+    public class DialogService : IDialogService
     {
         private LoginDialog _loginDlg;
-
-        public DialogService(IAuthenticationCallbackDispatcher callbackDispatcher)
-        {
-            callbackDispatcher.Register(this);
-        }
 
         public async Task ShowUrl(string url)
         {
@@ -21,14 +18,58 @@ namespace FlickrToOneDrive
             await _loginDlg.ShowAsync();
         }
 
-        public async Task<DialogResult> ShowDialog(string title, string text)
+        public async Task<string> ShowInputDialog(string title, string text, ValidationCallback<string> validationCallback)
         {
-            var dlg = new ContentDialog
+            var dlg = new InputDialog
             {
-                Title = title,
-                Content = text,
-                CloseButtonText = "OK"
+                Title = title
             };
+
+            dlg.PrimaryButtonClick += (sender, args) =>
+            {
+                // when using 'await validationCallback(..)' the execution continued.
+                // Probably related to events vs async. Need to investigate more.
+                // Synchronous call 'validationCallback(..).Result' deadlocked. 
+                // Probably related to UI thread & contexts.
+                // Solved by using AsyncContext from AsyncEx library
+                // https://stackoverflow.com/questions/9343594/how-to-call-asynchronous-method-from-synchronous-method-in-c
+
+                var validation = AsyncContext.Run(() => validationCallback(dlg.Text));
+                
+                if (!validation.Result)
+                {
+                    dlg.Error = validation.Error;
+                    args.Cancel = true;
+                }
+            };
+
+            var result = await dlg.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+                return dlg.Text;
+
+            return null;
+        }
+
+        public async Task<DialogResult> ShowDialog(string title, string text, bool copyable = false)
+        {
+            ContentDialog dlg;
+            if (copyable)
+            {
+                dlg = new CopyableTextDialog
+                {
+                    Title = title,
+                    Text = text
+                };
+            }
+            else
+            {
+                dlg = new ContentDialog
+                {
+                    Title = title,
+                    Content = text,
+                    CloseButtonText = "OK"
+                };
+            }
 
             return await ShowDialog(dlg);
         }
@@ -44,12 +85,6 @@ namespace FlickrToOneDrive
             };
 
             return await ShowDialog(dlg);
-        }
-
-        public Task HandleAuthenticationCallback(Uri callbackUri)
-        {
-            _loginDlg?.Hide();
-            return Task.FromResult(0);
         }
 
         private async Task<DialogResult> ShowDialog(ContentDialog dlg)

@@ -3,16 +3,19 @@ using System.Collections.Generic;
 
 namespace FlickrToOneDrive.Contracts.Models
 {
-    public class Session
+    public class Session : BaseEntity
     {
-        public int SessionId { get; set; }
+        public string DestinationCloud { get; set; }
+        public string SourceCloud { get; set; }
         public string DestinationFolder { get; set; }
         public DateTime Started { get; set; }
-        public bool Finished { get; set; }
+        public SessionMode Mode { get; set; }
+        public SessionFilesOrigin FilesOrigin { get; set; }
+        public SessionState State { get; set; }
         public ICollection<File> Files { get; set; }
         public override string ToString()
         {
-            return $"No: {SessionId}, Started {Started.ToString("g")}";
+            return $"No: {Id}, Started {Started.ToString("g")}";
         }
     }
 }

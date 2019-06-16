@@ -16,47 +16,59 @@ namespace FlickrToOneDrive.Contracts.Migrations
             modelBuilder
                 .HasAnnotation("ProductVersion", "2.2.3-servicing-35854");
 
-            modelBuilder.Entity("FlickrToOneDrive.Contracts.File", b =>
+            modelBuilder.Entity("FlickrToOneDrive.Contracts.Models.File", b =>
                 {
-                    b.Property<int>("FileId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd();
 
                     b.Property<string>("FileName");
 
+                    b.Property<string>("MonitorUrl");
+
+                    b.Property<string>("ResponseData");
+
                     b.Property<int>("SessionId");
+
+                    b.Property<string>("SourcePath");
 
                     b.Property<string>("SourceUrl");
 
-                    b.Property<int>("UploadStatus");
+                    b.Property<int>("State");
 
-                    b.Property<string>("UploadStatusData");
-
-                    b.HasKey("FileId");
+                    b.HasKey("Id");
 
                     b.HasIndex("SessionId");
 
                     b.ToTable("Files");
                 });
 
-            modelBuilder.Entity("FlickrToOneDrive.Contracts.Session", b =>
+            modelBuilder.Entity("FlickrToOneDrive.Contracts.Models.Session", b =>
                 {
-                    b.Property<int>("SessionId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd();
+
+                    b.Property<string>("DestinationCloud");
 
                     b.Property<string>("DestinationFolder");
 
-                    b.Property<bool>("Finished");
+                    b.Property<int>("FilesOrigin");
+
+                    b.Property<int>("Mode");
+
+                    b.Property<string>("SourceCloud");
 
                     b.Property<DateTime>("Started");
 
-                    b.HasKey("SessionId");
+                    b.Property<int>("State");
+
+                    b.HasKey("Id");
 
                     b.ToTable("Sessions");
                 });
 
-            modelBuilder.Entity("FlickrToOneDrive.Contracts.File", b =>
+            modelBuilder.Entity("FlickrToOneDrive.Contracts.Models.File", b =>
                 {
-                    b.HasOne("FlickrToOneDrive.Contracts.Session", "Session")
+                    b.HasOne("FlickrToOneDrive.Contracts.Models.Session", "Session")
                         .WithMany("Files")
                         .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Cascade);

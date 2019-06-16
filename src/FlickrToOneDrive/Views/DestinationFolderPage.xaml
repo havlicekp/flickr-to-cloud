@@ -6,21 +6,58 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:MvvmCross.Platforms.Uap.Views"
+    xmlns:system="using:System"
+    xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
+    xmlns:core="using:Microsoft.Xaml.Interactions.Core"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
             <local:Header />
-            <TextBlock Style="{StaticResource Heading}">Destination</TextBlock>
-            <TextBlock Style="{StaticResource Message}">
-                Type in destination folder and click Set. The folder must exist. If left blank, files will be copied to the root folder.
-            </TextBlock>
-            <Grid HorizontalAlignment="Center">
+            <StackPanel Margin="40 0 40 20">
+                <TextBlock Style="{StaticResource Heading}">Destination</TextBlock>
+                <TextBlock Style="{StaticResource Message}">
+                Select a folder where to upload files to and click the Choose button
+                </TextBlock>
+            </StackPanel>
+        </StackPanel>
+        <ListView
+            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+            BorderThickness="2"
+            Margin="40 0 40 10"
+            SelectedItem="{x:Bind Vm.SelectedFolder, Mode=TwoWay}"
+            ItemsSource="{Binding Folders, Mode=TwoWay}" 
+            Grid.Row="1">
+            <interactivity:Interaction.Behaviors>
+                <core:EventTriggerBehavior EventName="DoubleTapped">
+                    <core:InvokeCommandAction Command="{Binding OpenFolderCommand}" />
+                </core:EventTriggerBehavior>
+            </interactivity:Interaction.Behaviors>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="system:String">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Width="18"
+                               Height="18"
+                               Margin="0,0,16,0"
+                               Source="/Assets/Folder.png" />
+                        <TextBlock Text="{Binding}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button Command="{x:Bind Vm.SetDestinationFolderCommand}">Choose</Button>
+            <Button Command="{x:Bind Vm.CreateFolderCommand}">Create Folder</Button>
+        </StackPanel>
+
+        <!--<Grid HorizontalAlignment="Center">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto"/>
@@ -32,8 +69,7 @@
                         <TextBlock>Set</TextBlock>
                     </StackPanel>
                 </Button>
-            </Grid>
-        </StackPanel>
-        <local:Footer Grid.Row="1"/>
+            </Grid>-->
+        <local:Footer Grid.Row="3"/>
     </Grid>
 </views:MvxWindowsPage>

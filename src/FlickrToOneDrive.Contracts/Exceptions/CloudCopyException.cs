@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Runtime.Serialization;
 
 namespace FlickrToOneDrive.Contracts.Exceptions
@@ -20,5 +21,11 @@ namespace FlickrToOneDrive.Contracts.Exceptions
         public CloudCopyException(string message, Exception innerException) : base(message, innerException)
         {
         }
+
+        public CloudCopyException(string message, Exception innerException, ILogger log) : base(message, innerException)
+        {
+            log.Error(innerException, message);
+        }
+
     }
 }

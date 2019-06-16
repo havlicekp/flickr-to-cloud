@@ -32,7 +32,7 @@ namespace FlickrToOneDrive
             var logPath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "Logs", "FlickrToOneDrive-{Date}.log");
 
             var logConfiguration = new LoggerConfiguration()
-                .MinimumLevel.Information()
+                .MinimumLevel.Verbose()
                 .Enrich.WithThreadId()
                 .Enrich.WithExceptionDetails()
                 .WriteTo.RollingFile(logPath, outputTemplate: fileOutputTemplate);
@@ -47,7 +47,8 @@ namespace FlickrToOneDrive
             base.InitializeFirstChance();
             Mvx.IoCProvider.RegisterSingleton<ILogger>(() => Log.Logger);
             Mvx.IoCProvider.RegisterType<IConfiguration, Configuration>();
-            Mvx.IoCProvider.RegisterType<IDialogService, DialogService>();            
+            Mvx.IoCProvider.RegisterType<IDialogService, DialogService>();  
+            Mvx.IoCProvider.RegisterType<IStorageService, StorageService>();
         }
     }
 
