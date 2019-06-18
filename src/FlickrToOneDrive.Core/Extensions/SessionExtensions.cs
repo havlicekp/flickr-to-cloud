@@ -30,6 +30,14 @@ namespace FlickrToOneDrive.Core.Extensions
             }
         }
 
+        public static IList<File> GetFiles(this Session session)
+        {
+            using (var db = new CloudCopyContext())
+            {
+                return db.Files.Where(f => f.SessionId == session.Id).ToList();
+            }
+        }
+
         public static void Delete(this Session session)
         {
             using (var db = new CloudCopyContext())

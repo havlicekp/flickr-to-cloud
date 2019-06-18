@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using FlickrToOneDrive.Contracts;
 using FlickrToOneDrive.Contracts.Models;
 
@@ -11,7 +12,17 @@ namespace FlickrToOneDrive.Core.Extensions
             using (var db = new CloudCopyContext())
             {
                 var dbFile = db.Files.First(f => f.Id == file.Id);
-                dbFile.State = state;
+                dbFile.State = file.State = state;
+                db.SaveChanges();
+            }
+        }
+
+        public static void UpdateResponseData(this File file, string response)
+        {
+            using (var db = new CloudCopyContext())
+            {
+                var dbFile = db.Files.First(f => f.Id == file.Id);
+                dbFile.ResponseData = file.ResponseData = response;
                 db.SaveChanges();
             }
         }
@@ -21,9 +32,25 @@ namespace FlickrToOneDrive.Core.Extensions
             using (var db = new CloudCopyContext())
             {
                 var dbFile = db.Files.First(f => f.Id == file.Id);
-                dbFile.MonitorUrl = monitorUrl;
-                dbFile.State = FileState.InProgress;
+                dbFile.MonitorUrl = file.MonitorUrl = monitorUrl;
+                dbFile.State = file.State = FileState.InProgress;
                 db.SaveChanges();
+            }
+        }
+
+        public static async void SetFailedState(this File file, Exception e)
+        {
+            using (var db = new CloudCopyContext())
+            {
+                var dbFile = db.Files.FirstOrDefault(f => f.Id == file.Id);
+
+                // dbFile can be null when cancelling a session
+                if (dbFile != null)
+                {
+                    dbFile.State = file.State = FileState.Failed;
+                    dbFile.ResponseData = file.ResponseData = e.Message;
+                    await db.SaveChangesAsync();
+                }
             }
         }
     }
