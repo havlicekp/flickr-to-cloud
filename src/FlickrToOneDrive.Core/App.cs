@@ -33,7 +33,7 @@ namespace FlickrToOneDrive.Core
         private void InitializeMockedClasses()
         {
             var mockedFlickr = new Mock<ICloudFileSystem>();
-            mockedFlickr.Setup(x => x.GetFiles(It.IsAny<SessionFilesOrigin>(), It.IsAny<CancellationToken>(), It.IsAny<Action<ReadingFilesProgress>>())).Returns(async () =>
+            mockedFlickr.Setup(x => x.GetFilesAsync(It.IsAny<SessionFilesOrigin>(), It.IsAny<CancellationToken>(), It.IsAny<Action<ReadingFilesProgress>>())).Returns(async () =>
             {
                 var files = new File[]
                 {
@@ -68,13 +68,13 @@ namespace FlickrToOneDrive.Core
 
 
             var mockedOneDrive = new Mock<ICloudFileSystem>();
-            mockedOneDrive.Setup(x => x.UploadFileFromUrl(It.IsAny<string>(), It.IsAny<File>())).Returns(async () =>
+            mockedOneDrive.Setup(x => x.UploadFileFromUrlAsync(It.IsAny<string>(), It.IsAny<File>(), It.IsAny<CancellationToken>())).Returns(async () =>
             {
                 await Task.Delay(2000);
                 return
                     "https://api.onedrive.com/v1.0/monitor/4sDWoX9ohvmpgkRnnZHfEgM1o0K0QFAkI2bBFZgrxAhqvhL7496sD55QNhFwcNktnLauQBwB5DhVCncGDclrMGCvA2BzkhWMpEVZaKBaNsfxGMFeaa4_ta6hang-Ob_kK8K98Xa-qfsNcix031Vp7p9K1h7MoOfvm_jatr9jG96x4MiH_WPkPQ4WZvMeUhJPlh";
             });
-            mockedOneDrive.Setup(x => x.CheckOperationStatus(It.IsAny<File>())).Returns<string>(async (monitorUrl) =>
+            mockedOneDrive.Setup(x => x.CheckOperationStatusAsync(It.IsAny<File>(), It.IsAny<CancellationToken>())).Returns<string>(async (monitorUrl) =>
             {
                 await Task.Delay(2000);
                 return new OperationStatus(20, true, "");
