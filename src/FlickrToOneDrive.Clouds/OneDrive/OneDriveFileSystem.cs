@@ -18,6 +18,7 @@ using File = FlickrToOneDrive.Contracts.Models.File;
 using OperationStatus = FlickrToOneDrive.Contracts.Models.OperationStatus;
 using System.Threading;
 using FlickrToOneDrive.Contracts.Progress;
+using System.IO;
 
 namespace FlickrToOneDrive.Clouds.OneDrive
 {
@@ -37,7 +38,7 @@ namespace FlickrToOneDrive.Clouds.OneDrive
 
         public bool IsAuthenticated => _isAuthenticated;
 
-        public OneDriveFileSystem(IConfiguration config, 
+        public OneDriveFileSystem(IConfiguration config,
             ILogger log, IStorageService storageService)
         {
             _log = log.ForContext(GetType());
@@ -45,12 +46,14 @@ namespace FlickrToOneDrive.Clouds.OneDrive
             _clientId = config["onedrive.clientId"];
             _callbackUrl = config["onedrive.callbackUrl"];
             _scope = config["onedrive.scope"];
-            _storageService = storageService;            
+            _storageService = storageService;
         }
 
-        public async Task UploadFile(string destinationFilePath, string localFileName, CancellationToken ct)
+        public async Task UploadFileAsync(string destinationFilePath, string localFileName, CancellationToken ct)
         {
             var fileSize = await _storageService.GetFileSizeAsync(localFileName);
+
+            // File smaller than 4MB can be uploaded directly, otherwise chunked upload is required
             if (((double)fileSize / 1024 / 1024) <= 4)
                 await UploadSmallFile(destinationFilePath, localFileName, ct);
             else
@@ -58,15 +61,15 @@ namespace FlickrToOneDrive.Clouds.OneDrive
         }
 
 
-        public async Task<OperationStatus> CheckOperationStatus(File file)
+        public async Task<OperationStatus> CheckOperationStatusAsync(File file, CancellationToken ct)
         {
-            try
-            {
-                _log.Information($"Checking operation status for {file.MonitorUrl}");
+            _log.Information($"Checking operation status for {file.MonitorUrl}");
 
-                using (var client = new HttpClient())
+            using (var client = new HttpClient())
+            {
+                try
                 {
-                    using (var response = await client.GetAsync(file.MonitorUrl))
+                    using (var response = await client.GetAsync(file.MonitorUrl, ct))
                     {
                         var content = await response.Content.ReadAsStringAsync();
                         _log.Verbose($"Response {content}");
@@ -75,12 +78,12 @@ namespace FlickrToOneDrive.Clouds.OneDrive
                         if (response.IsSuccessStatusCode)
                         {
                             var json = JObject.Parse(content);
-                            var percentageComplete = (int) double.Parse(json["percentageComplete"].ToString());
+                            var percentageComplete = (int)double.Parse(json["percentageComplete"].ToString());
                             result = new OperationStatus(percentageComplete, true, content);
                         }
                         else
                         {
-                            if (await FileExists(file.SourceUrl))
+                            if (await ItemExists(file.SourceUrl, ct))
                                 result = new OperationStatus(100, true, content);
                             else
                                 result = new OperationStatus(0, false, content);
@@ -89,10 +92,10 @@ namespace FlickrToOneDrive.Clouds.OneDrive
                         return result;
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                throw new CloudCopyException("Can't check OneDrive operation status", e, _log);
+                catch (HttpRequestException e)
+                {
+                    throw new CloudCopyException("Error talking to OneDrive. Are your connected to the internet?", e, _log);
+                }
             }
         }
 
@@ -143,59 +146,76 @@ namespace FlickrToOneDrive.Clouds.OneDrive
             }
         }
 
-        public async Task<string> UploadFileFromUrl(string destinationPath, File file)
+        public async Task<string> UploadFileFromUrlAsync(string destinationPath, File file, CancellationToken ct)
         {
             _log.Information("Uploading a file {@File}", file);
 
-            var fileName = System.IO.Path.GetFileName(file.SourceUrl);
             var requestContent = $@"{{
                     ""@microsoft.graph.sourceUrl"": ""{file.SourceUrl}"",
-                    ""name"": ""{fileName}"",
+                    ""name"": ""{file.FileName}"",
                     ""file"": {{}}
                 }}";
-            using (var response = await SendRequestAsync(
-                $"https://graph.microsoft.com/v1.0/me/drive/root:{destinationPath}:/children",
-                requestContent, HttpMethod.Post, $"Unable to upload {file.FileName} to {destinationPath}",
-                (headers) => headers.Add("Prefer", "respond-async")))
-            {
-                var monitorUrl = response.Headers.Location.ToString();
-                if (!response.IsSuccessStatusCode || string.IsNullOrEmpty(monitorUrl))
-                    throw new CloudCopyException("Upload by URL returned empty monitor URL");
-                return monitorUrl;
-            }
-        }        
 
-        public async Task<bool> FolderExists(string folder)
+            var builder = GetUriBuilder($"/v1.0/me/drive/root:{destinationPath}:/children");
+
+            using (var response = await SendRequestAsync(
+                builder.Uri.AbsoluteUri,
+                requestContent, 
+                HttpMethod.Post, 
+                $"Unable to upload {file.FileName} to {destinationPath}",
+                ct,
+                (headers) => headers.Add("Prefer", "respond-async")                
+                ))
+            {                
+                if (!response.IsSuccessStatusCode || response.Headers.Location == null)
+                {
+                    var responseStr = await response.Content.ReadAsStringAsync();
+                    var msg = "Upload by URL failed or returned an empty monitor URL";
+                    _log.Error($"{msg} ({responseStr})");
+                    throw new CloudCopyException(msg);
+                }
+
+                return response.Headers.Location.ToString();
+            }
+        }
+
+        public async Task<bool> FolderExistsAsync(string folder, CancellationToken ct)
         {
             _log.Information($"Checking if folder exists '{folder}'");
 
+            var builder = GetUriBuilder($"/v1.0/me/drive/root:{folder}:/children");
+
             using (var response = await SendRequestAsync(
-                $"https://graph.microsoft.com/v1.0/me/drive/root:{folder}:/children",
+                builder.Uri.AbsoluteUri,
                 null,
                 HttpMethod.Get,
-                $"Error while checking if the folder exist"))
+                $"Error while checking if the folder exist",
+                ct))
             {
                 return response.IsSuccessStatusCode;
             }
         }
 
-        public async Task<bool> CreateFolder(string folder)
+        public async Task<bool> CreateFolderAsync(string folder, CancellationToken ct)
         {
             _log.Information($"Creating folder '{folder}'");
 
-            string endpoint;
-
+            // For path '/' use /drive/root/children
+            // For path '/folder/subfolder' use /drive/root:/folder:/children
+            var path = "";
             var slashIdx = folder.LastIndexOf('/');
             var tail = folder.Substring(slashIdx + 1);
             if (slashIdx == 0)
             {
-                endpoint = "https://graph.microsoft.com/v1.0/me/drive/root/children";
+                path = "/v1.0/me/drive/root/children";
             }
             else
             {
                 var head = folder.Remove(slashIdx);
-                endpoint = $"https://graph.microsoft.com/v1.0/me/drive/root:{head}:/children";
+                path = $"/v1.0/me/drive/root:{head}:/children";
             }
+
+            var builder = GetUriBuilder(path);
 
             var requestContent = $@"{{
                     ""name"": ""{tail}"",
@@ -203,22 +223,30 @@ namespace FlickrToOneDrive.Clouds.OneDrive
                     ""@microsoft.graph.conflictBehavior"": ""replace""                    
                 }}";
 
-            using (var response = await SendRequestAsync(endpoint,
-                requestContent, HttpMethod.Post, $"Unable to create folder '{folder}'"))
+            using (var response = await SendRequestAsync(builder.Uri.AbsoluteUri,
+                requestContent, HttpMethod.Post, $"Unable to create folder '{folder}'", ct))
             {
-                return response.IsSuccessStatusCode;
+                if (response.IsSuccessStatusCode)
+                {
+                    await WaitForItemToAppear(folder, ct);
+                    return true;
+                }
+
+                return false;
             }
         }
 
-        public async Task<string[]> GetSubFolders(string folder)
+        public async Task<string[]> GetSubFoldersAsync(string folder, CancellationToken ct)
         {
             _log.Information($"Getting sub folders '{folder}'");
 
-            var endpoint = folder == "/"
-                ? $"https://graph.microsoft.com/v1.0/me/drive/root/children"
-                : $"https://graph.microsoft.com/v1.0/me/drive/root:/{folder}:/children";
+            var builder = GetUriBuilder();
+            builder.Path = folder == "/"
+                ? $"/v1.0/me/drive/root/children"
+                : $"/v1.0/me/drive/root:/{folder}:/children";
+
             using (var response =
-                await SendRequestAsync(endpoint, null, HttpMethod.Get, $"Error while reading subfolders"))
+                await SendRequestAsync(builder.Uri.AbsoluteUri, null, HttpMethod.Get, $"Error while reading subfolders", ct))
             {
                 var content = await response.Content.ReadAsStringAsync();
                 var json = JObject.Parse(content);
@@ -233,6 +261,57 @@ namespace FlickrToOneDrive.Clouds.OneDrive
             }
         }
 
+        public Task<File[]> GetFilesAsync(SessionFilesOrigin filesOrigin, CancellationToken ct, Action<ReadingFilesProgress> progressHandler = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task CopyFileAsync(string fromFilePath, string destinationPath, CancellationToken ct)
+        {
+            _log.Information($"Copying a file from {fromFilePath} to {destinationPath}");            
+
+            var requestContent = "{ \"parentReference\": { \"path\": \"/drive/root:" + destinationPath + "\" }}";
+
+            var builder = GetUriBuilder($"/v1.0/me/drive/root:{fromFilePath}:/copy");
+
+            using (var response = await SendRequestAsync(
+                builder.Uri.AbsoluteUri,
+                requestContent,
+                HttpMethod.Post,
+                $"Unable to copy {fromFilePath} to {destinationPath}",
+                ct))
+            {
+                if (!response.IsSuccessStatusCode || response.Headers.Location == null)
+                {
+                    var responseStr = await response.Content.ReadAsStringAsync();
+                    var msg = "Copying a remote file failed or didn't return any monitor URL";
+                    _log.Error($"{msg} ({responseStr})");
+                    throw new CloudCopyException(msg);
+                }
+
+                var destinationFilePath = $"{destinationPath}/{Path.GetFileName(fromFilePath)}";
+                await WaitForItemToAppear(destinationFilePath, ct);
+            }
+        }
+
+        private async Task WaitForItemToAppear(string destinationItemPath, CancellationToken ct)
+        {            
+            // Wait 5 seconds for the file to appear
+            var numRetries = 5;
+
+            for (int i = 0; i < numRetries; i++)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                if (await ItemExists(destinationItemPath, ct))
+                    return;
+
+                await Task.Delay(1000, ct);
+            }
+
+            throw new CloudCopyException($"File {destinationItemPath} didn't copy in time");
+        }
+    
         private void InitGraphClient()
         {
             _graphClient = new GraphServiceClient(
@@ -277,27 +356,30 @@ namespace FlickrToOneDrive.Clouds.OneDrive
             }
         }
 
-        private async Task<bool> FileExists(string url)
+        private async Task<bool> ItemExists(string path, CancellationToken ct)
         {
-            using (var request = new HttpRequestMessage(HttpMethod.Head, url))
+            var builder = GetUriBuilder($"/v1.0/me/drive/root:{path}");
+
+            using (var response = await SendRequestAsync(
+                builder.Uri.AbsoluteUri,
+                null,
+                HttpMethod.Get,
+                $"ItemExists error for {path}",
+                ct))
             {
-                using (var httpClient = new HttpClient())
-                {
-                    using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
-                    {
-                        return response.StatusCode == System.Net.HttpStatusCode.OK;
-                    }
-                }
+                return response.IsSuccessStatusCode;
             }
         }
 
         private async Task<HttpResponseMessage> SendRequestAsync(string endpoint, string requestContent,
-            HttpMethod method, string errorMsg, Action<HttpRequestHeaders> headersAction = null)
+            HttpMethod method, string errorMsg, CancellationToken ct, Action<HttpRequestHeaders> headersAction = null)
         {
             Debug.Assert(_isAuthenticated);
 
             try
             {
+                HttpResponseMessage response;
+
                 using (var request = new HttpRequestMessage(method, endpoint))
                 {
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -306,16 +388,23 @@ namespace FlickrToOneDrive.Clouds.OneDrive
                         ? null
                         : new StringContent(requestContent, Encoding.UTF8, "application/json");
                     headersAction?.Invoke(request.Headers);
-
-                    _log.Verbose("Request {@Request}", request);
-
+                    _log.Information("{@method} request: {@endpoint}, Content: {@content}", method, endpoint, request.Content);
                     using (var client = new HttpClient())
                     {
-                        var response = await client.SendAsync(request);
-                        _log.Verbose("Response {@Response}", response);
+                        response = await client.SendAsync(request);
+                        _log.Information("{@code} {@message}, headers: {@headers}", response.StatusCode, response.ReasonPhrase, response.Headers);
                         return response;
                     }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                _log.Information($"SendRequestAsync cancelled ({endpoint}:{requestContent})");
+                throw;
+            }
+            catch (HttpRequestException e)
+            {
+                throw new CloudCopyException("Error talking to OneDrive. Are your connected to the internet?", e, _log);
             }
             catch (Exception e)
             {
@@ -323,10 +412,14 @@ namespace FlickrToOneDrive.Clouds.OneDrive
             }
         }
 
-        public Task<File[]> GetFiles(SessionFilesOrigin filesOrigin, CancellationToken ct, Action<ReadingFilesProgress> progressHandler = null)
+        private UriBuilder GetUriBuilder(string path = null)
         {
-            throw new NotImplementedException();
+            var result = new UriBuilder("https://graph.microsoft.com");
+            if (!string.IsNullOrEmpty(path))
+                result.Path = path;
+            return result;
         }
+
     }
 }
 
