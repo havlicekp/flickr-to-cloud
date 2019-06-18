@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using FlickrToOneDrive.Contracts;
@@ -21,6 +22,11 @@ namespace FlickrToOneDrive.Core.ViewModels
         private bool _checkingFolder;
         private MvxObservableCollection<string> _folders = new MvxObservableCollection<string>();
         private string _currentPath;
+        private bool _loadingFolders;
+
+        public ICommand SetDestinationFolderCommand { get; set; }
+        public ICommand OpenFolderCommand { get; set; }
+        public ICommand CreateFolderCommand { get; set; }
 
         public DestinationFolderViewModel(IMvxNavigationService navigationService, IDialogService dialogService, ILogger log)
         {
@@ -79,18 +85,37 @@ namespace FlickrToOneDrive.Core.ViewModels
             {
                 _currentPath = GetFolderPath(folder);
             }
-            var folders = await _setup.Destination.GetSubFolders(_currentPath);
+
             _folders.Clear();
-            if (_currentPath != "/")
-                _folders.Add("..");
-            if (folders.Length > 0)
-                _folders.AddRange(folders);
+            LoadingFolders = true;
+            try
+            {                
+                var folders = await _setup.Destination.GetSubFoldersAsync(_currentPath, CancellationToken.None);                
+                if (_currentPath != "/")
+                    _folders.Add("..");
+                if (folders.Length > 0)
+                    _folders.AddRange(folders);
+            }
+            finally
+            {
+                LoadingFolders = false;
+            }
         }
 
         public override async void ViewAppeared()
         {
             base.ViewAppeared();
             await OpenFolder("/");
+        }
+
+        public bool LoadingFolders
+        {
+            get => _loadingFolders;
+            set
+            {
+                _loadingFolders = value;
+                RaisePropertyChanged(() => LoadingFolders);
+            }
         }
 
         public bool CheckingFolder
@@ -102,22 +127,6 @@ namespace FlickrToOneDrive.Core.ViewModels
                 _checkingFolder = value;
                 RaisePropertyChanged(() => CheckingFolder);
             }
-        }
-
-        public ICommand SetDestinationFolderCommand
-        {
-            get; set; 
-
-        }
-
-        public ICommand OpenFolderCommand
-        {
-            get; set;
-        }
-
-        public ICommand CreateFolderCommand
-        {
-            get; set;
         }
 
         public string SelectedFolder
@@ -152,11 +161,11 @@ namespace FlickrToOneDrive.Core.ViewModels
             CheckingFolder = true;
             try
             {
-                var folderExist = await _setup.Destination.FolderExists(GetFolderPath(folder));
+                var folderExist = await _setup.Destination.FolderExistsAsync(GetFolderPath(folder), CancellationToken.None);
                 if (folderExist)
                     return (false, $"The folder '{folder}' already exists");
 
-                var folderCreated = await _setup.Destination.CreateFolder(GetFolderPath(folder));
+                var folderCreated = await _setup.Destination.CreateFolderAsync(GetFolderPath(folder), CancellationToken.None);
                 if (!folderCreated)
                     return (false, "Unable to create the folder");
 

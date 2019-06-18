@@ -24,52 +24,55 @@
             <StackPanel Margin="40 0 40 20">
                 <TextBlock Style="{StaticResource Heading}">Destination</TextBlock>
                 <TextBlock Style="{StaticResource Message}">
-                Select a folder where to upload files to and click the Choose button
+                Select a folder where to upload files to and click the Continue button
                 </TextBlock>
             </StackPanel>
         </StackPanel>
-        <ListView
+        <RelativePanel Margin="0 0 0 0" Grid.Row="1">
+            <ListView
+                x:Name="lvFolders"
             BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
             BorderThickness="2"
             Margin="40 0 40 10"
             SelectedItem="{x:Bind Vm.SelectedFolder, Mode=TwoWay}"
-            ItemsSource="{Binding Folders, Mode=TwoWay}" 
-            Grid.Row="1">
-            <interactivity:Interaction.Behaviors>
-                <core:EventTriggerBehavior EventName="DoubleTapped">
-                    <core:InvokeCommandAction Command="{Binding OpenFolderCommand}" />
-                </core:EventTriggerBehavior>
-            </interactivity:Interaction.Behaviors>
-            <ListView.ItemTemplate>
-                <DataTemplate x:DataType="system:String">
-                    <StackPanel Orientation="Horizontal">
-                        <Image Width="18"
+            ItemsSource="{Binding Folders, Mode=TwoWay}"
+            RelativePanel.AlignLeftWithPanel="True"
+            RelativePanel.AlignRightWithPanel="True"
+                RelativePanel.AlignBottomWithPanel="True"
+                RelativePanel.AlignTopWithPanel="True">
+                <interactivity:Interaction.Behaviors>
+                    <core:EventTriggerBehavior EventName="DoubleTapped">
+                        <core:InvokeCommandAction Command="{Binding OpenFolderCommand}" />
+                    </core:EventTriggerBehavior>
+                </interactivity:Interaction.Behaviors>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="system:String">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Width="18"
                                Height="18"
                                Margin="0,0,16,0"
                                Source="/Assets/Folder.png" />
-                        <TextBlock Text="{Binding}"/>
-                    </StackPanel>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button Command="{x:Bind Vm.SetDestinationFolderCommand}">Choose</Button>
-            <Button Command="{x:Bind Vm.CreateFolderCommand}">Create Folder</Button>
-        </StackPanel>
+                            <TextBlock Text="{Binding}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <StackPanel RelativePanel.AlignHorizontalCenterWith="lvFolders" 
+                        RelativePanel.AlignVerticalCenterWith="lvFolders" Orientation="Horizontal" Visibility="{Binding LoadingFolders}">
+                <ProgressRing IsActive="True" Margin="0 0 5 0" />
+                <TextBlock Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}">Loading</TextBlock>
+            </StackPanel>
+        </RelativePanel>
 
-        <!--<Grid HorizontalAlignment="Center">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0" MinWidth="250" VerticalAlignment="Center" PlaceholderText="/Example/Path" Text="{x:Bind Vm.DestinationFolder, Mode=TwoWay}" />
-                <Button Grid.Column="1" Style="{StaticResource Button}" Width="100" Command="{x:Bind Vm.SetDestinationFolderCommand}">
-                    <StackPanel Orientation="Horizontal">
-                        <ProgressRing IsActive="True" Visibility="{x:Bind Vm.CheckingFolder}"/>
-                        <TextBlock>Set</TextBlock>
-                    </StackPanel>
-                </Button>
-            </Grid>-->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button Command="{x:Bind Vm.CreateFolderCommand}">Create Folder</Button>
+            <Button HorizontalAlignment="Right" Command="{x:Bind Vm.SetDestinationFolderCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock>Continue</TextBlock>
+                    <FontIcon FontWeight="ExtraBold" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5 3 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEBE7;" FontSize="14" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
         <local:Footer Grid.Row="3"/>
     </Grid>
 </views:MvxWindowsPage>
