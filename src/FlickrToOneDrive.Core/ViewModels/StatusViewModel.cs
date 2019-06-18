@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -8,6 +6,7 @@ using FlickrToOneDrive.Contracts;
 using FlickrToOneDrive.Contracts.Exceptions;
 using FlickrToOneDrive.Contracts.Interfaces;
 using FlickrToOneDrive.Contracts.Models;
+using FlickrToOneDrive.Contracts.Progress;
 using FlickrToOneDrive.Core.Extensions;
 using MvvmCross.Commands;
 using MvvmCross.Navigation;
@@ -27,54 +26,56 @@ namespace FlickrToOneDrive.Core.ViewModels
         private int _finishedFilesCount;
         private int _failedFilesCount;
         private int _inProgressFilesCount;
-        private int _filesProcessed;
         private string _statusMessage;
         private int _progressValue;
         private string _progressMessage;
         private string _progressHeading;
         private string _headingMessage;
+        private CancellationTokenSource _cancellationTokeSource;
+        private bool _pausing;
+        private bool _paused;
+        private bool _hasError;
+        private Exception _exception;
+        private bool _checkingFinishedWithSuccess;
+        private StatusCheckProgress _lastProgress;
 
         public StatusViewModel(IMvxNavigationService navigationService, ICloudCopyService copyService, IDialogService dialogService, ILogger log)
         {
             CheckStatusCommand = new MvxAsyncCommand(CheckStatus);
             ViewFilesCommand = new MvxAsyncCommand(ViewFiles);
+            PauseCommand = new MvxCommand(PauseChecking);
+            ResumeCommand = new MvxAsyncCommand(ResumeChecking);
+            ShowErrorDetailsCommand = new MvxAsyncCommand(ShowErrorDetails);
             _navigationService = navigationService;
             _copyService = copyService;
             _dialogService = dialogService;
             _log = log.ForContext(GetType());
         }
 
+        public ICommand CheckStatusCommand { get; set; }
+        public ICommand ViewFilesCommand { get; set; }
+        public ICommand PauseCommand { get; set; }
+        public ICommand ResumeCommand { get; set; }
+        public ICommand ShowErrorDetailsCommand { get; set; }
+        
         public override void Prepare(Setup setup)
         {
             _setup = setup;
             
-            _copyService.CheckingStatusHandler += (progress, filesProcessed) =>
+            _copyService.CheckingStatusHandler += (progress) =>
             {
-                ProgressHeading = filesProcessed.ToString();
-                ProgressValue = progress;
-                FilesProcessed = filesProcessed;
+                var percentage = progress.ProcessedItems * 100 / progress.TotalItems;
+                ProgressValue = percentage;
+                ProgressHeading = progress.ProcessedItems.ToString();
+                _lastProgress = progress;
             };
-            _copyService.CheckingStatusFinishedHandler += (finishedFiles, failedFiles, inProgressFiles, progress) =>
-            {
-                UpdateStatus(finishedFiles, failedFiles, inProgressFiles, progress);
-            };
-        }
 
-        private void UpdateStatus(int finishedFiles, int failedFiles, int inProgressFiles, int progress)
-        {
-            CheckingStatus = false;
-            ProgressHeading = $"{progress}%";
-            ProgressMessage = "total progress";
-            ProgressValue = progress;
-            FinishedFilesCount = finishedFiles;
-            FailedFilesCount = failedFiles;
-            InProgressFilesCount = inProgressFiles;
-            if (_setup.Session.State == SessionState.Finished)
+            _copyService.CheckingStatusFinishedHandler += (progress) =>
             {
-                HeadingMessage = "Finished!";
-                StatusMessage = "The session is finished now. Thank you for using Flickr To Cloud";
-                IsSessionFinished = true;
-            }
+                var percentage = (progress.ProcessedWithSuccess + progress.ProcessedWithError) * 100 / progress.TotalItems;
+                UpdateStatus(progress.ProcessedWithSuccess, progress.ProcessedWithError, progress.InProgress, percentage);
+                CheckingFinishedWithSuccess = true;
+            };
         }
 
         public override async void ViewAppeared()
@@ -83,39 +84,7 @@ namespace FlickrToOneDrive.Core.ViewModels
             await CheckStatus();
         }
 
-        public async Task CheckStatus()
-        {
-            if (_setup.Session.Mode == SessionMode.Remote)
-            {
-                HeadingMessage = "Checking status";
-                StatusMessage = $"Querying {_setup.Destination.Name} to check which files were already uploaded.";
-                ProgressHeading = "0";
-                ProgressMessage = "file(s) checked";
-                _cancellationTokeSource = new CancellationTokenSource();
-                await ExecuteWithProgress(() => _copyService.CheckStatus(_setup, _cancellationTokeSource.Token), () => CheckingStatus);
-            }
-            else
-            {
-                var finishedFilesCount = _setup.Session.GetFiles(FileState.Finished).Count;
-                var failedFilesCount = _setup.Session.GetFiles(FileState.Failed).Count;
-                UpdateStatus(finishedFilesCount, failedFilesCount, 0, 100);
-            }
-        }
-
-        public async Task ViewFiles()
-        {
-            await _navigationService.Navigate<FilesViewModel, Setup>(_setup);
-        }
-
-        public ICommand CheckStatusCommand
-        {
-            get; set;
-        }
-
-        public ICommand ViewFilesCommand
-        {
-            get; set;
-        }
+        #region Properties
 
         public int ProgressValue
         {
@@ -135,9 +104,7 @@ namespace FlickrToOneDrive.Core.ViewModels
                 _progressMessage = value;
                 RaisePropertyChanged(() => ProgressMessage);
             }
-        }
-
-        private CancellationTokenSource _cancellationTokeSource;
+        }        
 
         public string ProgressHeading
         {
@@ -146,17 +113,6 @@ namespace FlickrToOneDrive.Core.ViewModels
             {
                 _progressHeading = value;
                 RaisePropertyChanged(() => ProgressHeading);
-            }
-        }
-
-
-        public int FilesProcessed
-        {
-            get => _filesProcessed;
-            set
-            {
-                _filesProcessed = value;
-                RaisePropertyChanged(() => FilesProcessed);
             }
         }
 
@@ -220,33 +176,184 @@ namespace FlickrToOneDrive.Core.ViewModels
             }
         }
 
+        public bool Pausing
+        {
+            get => _pausing;
+            set
+            {
+                _pausing = value;
+                RaisePropertyChanged(() => Pausing);
+            }
+        }
+
+        public bool Paused
+        {
+            get => _paused;
+            set
+            {
+                _paused = value;
+                RaisePropertyChanged(() => Paused);
+            }
+        }
+
+        public bool HasError
+        {
+            get => _hasError;
+            set
+            {
+                _hasError = value;
+                RaisePropertyChanged(() => HasError);
+            }
+        }
+
+        public bool CheckingFinishedWithSuccess
+        {
+            get => _checkingFinishedWithSuccess;
+            set
+            {
+                _checkingFinishedWithSuccess = value;
+                RaisePropertyChanged(() => CheckingFinishedWithSuccess);
+            }
+        }
+
+        public Exception Exception
+        {
+            get => _exception;
+            set
+            {
+                _exception = value;
+                RaisePropertyChanged(() => Exception);
+            }
+        }
+
         public bool IsSessionFinished
         {
             get => _setup.Session.State == SessionState.Finished;
             set => RaisePropertyChanged(() => IsSessionFinished);
         }
 
-        private async Task ExecuteWithProgress<T>(Func<Task> a, Expression<Func<T>> progressExpr)
+        #endregion
+
+        #region Command methods
+
+        private async Task CheckStatus()
         {
-            var expr = (MemberExpression)progressExpr.Body;
-            var progressProp = (PropertyInfo)expr.Member;
-            progressProp.SetValue(this, true);
+            if (_setup.Session.Mode == SessionMode.Remote)
+            {
+                await CheckStatusForRemoteUpload();
+            }
+            else
+            {
+                var finishedFilesCount = _setup.Session.GetFiles(FileState.Finished).Count;
+                var failedFilesCount = _setup.Session.GetFiles(FileState.Failed).Count;
+                UpdateStatus(finishedFilesCount, failedFilesCount, 0, 100);
+            }
+        }
+
+        private async Task ViewFiles()
+        {
+            await _navigationService.Navigate<FilesViewModel, Setup>(_setup);
+        }
+
+        private void PauseChecking()
+        {
+            Pausing = true;
+            _cancellationTokeSource.Cancel();
+        }
+
+        private async Task ResumeChecking()
+        {
+            await CheckStatusForRemoteUpload(_lastProgress);
+        }
+
+        private async Task<DialogResult> ShowErrorDetails()
+        {
+            return await _dialogService.ShowDialog("Error", _exception.ToString(), true);
+        }
+
+        #endregion
+
+        private async Task CheckStatusForRemoteUpload(StatusCheckProgress resumeProgress = null)
+        {
+            HeadingMessage = "Checking status";
+            StatusMessage = $"Querying {_setup.Destination.Name} to check which files were already uploaded";
+            ProgressMessage = "file(s) checked";
+            if (resumeProgress == null)
+            {
+                ProgressHeading = "0";
+                ProgressValue = 0;
+            }
+            CheckingStatus = true;
+            Paused = HasError = CheckingFinishedWithSuccess = false;
+            _cancellationTokeSource = new CancellationTokenSource();
+
             try
             {
-                await a();
+                await _copyService.CheckStatus(_setup, _cancellationTokeSource.Token, resumeProgress);
             }
-            catch (CloudCopyException e)
+            catch (OperationCanceledException)
             {
-                await _dialogService.ShowDialog("Error", e.Message);
-                //StatusMessage = e.Message;
+                HandleCancellation();
             }
             catch (Exception e)
             {
-                _log.Error(e, "Unhandled exception");
-                await _dialogService.ShowDialog("Error", "Unknown Error occured");
-                //StatusMessage = "Unknown Error occured";
+                HandleError(e);
             }
-            progressProp.SetValue(this, false);
+            finally
+            {
+                CheckingStatus = false;
+            }
+        }        
+
+        private void HandleCancellation()
+        {
+            Pausing = false;
+            Paused = true;
+            HeadingMessage = "Paused";
+            StatusMessage = "Checking is paused. Press Resume to continue";
+        }
+
+        private void HandleError(Exception e)
+        {
+            var retryMsg = "Click Retry to check for the upload status again. Click Error Details to see the error description";
+            var unhandledMsg = "Unhandled exception";
+
+            HeadingMessage = "Error";
+            if (e is CloudCopyException)
+            {
+                StatusMessage = $"{e.Message}. {retryMsg}";
+            }
+            else
+            {
+                StatusMessage = $"{unhandledMsg}. {retryMsg}";
+                _log.Error(e, unhandledMsg);
+            }
+
+            Exception = e;
+            HasError = true;
+        }
+
+        private void UpdateStatus(int finishedFiles, int failedFiles, int inProgressFiles, int percentage)
+        {
+            CheckingStatus = false;
+
+            // Update progress bar
+            ProgressHeading = $"{percentage}%";
+            ProgressMessage = "total progress";
+            ProgressValue = percentage;
+
+            // Update file numbers
+            FinishedFilesCount = finishedFiles;
+            FailedFilesCount = failedFiles;
+            InProgressFilesCount = inProgressFiles;
+
+            // Update heading
+            if (_setup.Session.State == SessionState.Finished)
+            {
+                HeadingMessage = "Finished!";
+                StatusMessage = "The session is finished now. Thank you for using Flickr To Cloud";
+                IsSessionFinished = true;
+            }
         }
     }
 }

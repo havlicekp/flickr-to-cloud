@@ -13,7 +13,7 @@
     >
     <Page.Resources>
         <ResourceDictionary>
-            <converters:BoolNegationConverter x:Key="BoolNegationConverter" />
+            <converters:BoolNegationConverter x:Key="BoolNegation" />
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         </ResourceDictionary>
     </Page.Resources>
@@ -29,7 +29,8 @@
                 <TextBlock Style="{StaticResource Heading}" Text="{Binding HeadingMessage}" />
                 <TextBlock Style="{StaticResource Message}" Text="{Binding StatusMessage}"/>
             </StackPanel>
-            <Grid Margin="0 30 0 0" Visibility="{Binding CheckingStatus, Converter={StaticResource BoolNegationConverter}}">
+
+            <Grid Margin="0 30 0 0" Visibility="{Binding CheckingFinishedWithSuccess}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
@@ -43,32 +44,53 @@
                 <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Center">
                     <Image Margin="8" Source="/Assets/UploadStatusFinished.png" Width="24" />
                     <TextBlock>FINISHED</TextBlock>
-                    <TextBlock HorizontalTextAlignment="Center" FontSize="20" Text="{Binding FinishedFilesCount}" />
+                    <TextBlock HorizontalTextAlignment="Center" FontSize="16" Text="{Binding FinishedFilesCount}" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center">
                     <Image Margin="8" Source="/Assets/UploadStatusInProgress.png" Width="24" />
                     <TextBlock>UPLOADING</TextBlock>
-                    <TextBlock HorizontalTextAlignment="Center" FontSize="20" Text="{Binding InProgressFilesCount}" />
+                    <TextBlock HorizontalTextAlignment="Center" FontSize="16" Text="{Binding InProgressFilesCount}" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Vertical" HorizontalAlignment="Center">
                     <Image Margin="8" Source="/Assets/UploadStatusFailed.png" Width="24" />
                     <TextBlock>FAILED</TextBlock>
-                    <TextBlock HorizontalTextAlignment="Center" FontSize="20" Text="{Binding FailedFilesCount}" />
+                    <TextBlock HorizontalTextAlignment="Center" FontSize="16" Text="{Binding FailedFilesCount}" />
                 </StackPanel>
             </Grid>
-            <RelativePanel Margin="0 50 0 0" HorizontalAlignment="Center" Grid.Row="1" Grid.ColumnSpan="3">
-                    <controls:RadialProgressBar x:Name="rdbProgress" Thickness="8" Minimum="0" Maximum="100" Width="200" Height="200" Foreground="#1bc98e" Value="{Binding ProgressValue}" Outline="#9f86ff">
-                    </controls:RadialProgressBar>
-                    <StackPanel RelativePanel.AlignHorizontalCenterWith="rdbProgress" 
+
+            <!--Show radial progress bar during status check -->
+            <RelativePanel Margin="0 30 0 0" HorizontalAlignment="Center">
+                <controls:RadialProgressBar x:Name="rdbProgress" Thickness="8" Minimum="0" Maximum="100" Width="200" Height="200" Foreground="#9f86ff" Outline="#1bc98e" Value="{Binding ProgressValue}" />
+                <StackPanel RelativePanel.AlignHorizontalCenterWith="rdbProgress" 
                         RelativePanel.AlignVerticalCenterWith="rdbProgress">
-                        <TextBlock HorizontalTextAlignment="Center" FontSize="32" Text="{Binding ProgressHeading}" />
-                        <TextBlock HorizontalTextAlignment="Center" FontSize="14" Text="{Binding ProgressMessage}" />
-                    </StackPanel>
-                </RelativePanel>
-                <StackPanel Grid.ColumnSpan="3" Grid.Row="2" Margin="0 40 0 0" Orientation="Horizontal" HorizontalAlignment="Center" Visibility="{Binding CheckingStatus, Converter={StaticResource BoolNegationConverter}}">
-                    <Button Command="{Binding CheckStatusCommand}" Visibility="{Binding IsSessionFinished, Converter={StaticResource BoolNegationConverter}}">Check Status</Button>
+                    <TextBlock HorizontalTextAlignment="Center" FontSize="32" Text="{Binding ProgressHeading}" />
+                    <TextBlock HorizontalTextAlignment="Center" FontSize="14" Text="{Binding ProgressMessage}" />
+                </StackPanel>
+            </RelativePanel>
+
+            <!--Show Check Status to start checking again and View Files to view file details-->
+            <StackPanel Grid.ColumnSpan="3" Grid.Row="2" Margin="0 40 0 0" Orientation="Horizontal" HorizontalAlignment="Center" Visibility="{Binding CheckingFinishedWithSuccess}">
+                    <Button Command="{Binding CheckStatusCommand}" Visibility="{Binding IsSessionFinished, Converter={StaticResource BoolNegation}}">Check Status</Button>
                     <Button Command="{Binding ViewFilesCommand}">View Files</Button>
                 </StackPanel>
+            
+            <!--Show Pause button during a status check -->
+            <Button Command="{x:Bind Vm.PauseCommand}" Visibility="{Binding CheckingStatus}" IsEnabled="{Binding Pausing, Converter={StaticResource BoolNegation}}" Margin="0 30 0 0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" Visibility="{Binding Pausing}">Pausing...</TextBlock>
+                    <TextBlock VerticalAlignment="Center" Visibility="{Binding Pausing, Converter={StaticResource BoolNegation}}">Pause</TextBlock>
+                </StackPanel>
+            </Button>
+
+            <!--Show resume button when paused-->
+            <Button Command="{x:Bind Vm.ResumeCommand}" Visibility="{Binding Paused}" Margin="0 30 0 0">Resume</Button>
+
+            <!--Show Check Status & Error Details for unexpected error -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Visibility="{Binding HasError}" Margin="0 30 0 0">
+                <Button Margin="0 0 0 0" Command="{x:Bind Vm.CheckStatusCommand}">Retry</Button>
+                <Button Margin="10 0 0 0" Command="{x:Bind Vm.ShowErrorDetailsCommand}">Error Details</Button>
+            </StackPanel>
+
         </StackPanel>
         <local:Footer Grid.Row="1"/>
     </Grid>
