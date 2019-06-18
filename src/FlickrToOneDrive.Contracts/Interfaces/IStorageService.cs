@@ -10,6 +10,7 @@ namespace FlickrToOneDrive.Contracts.Interfaces
         Task<Stream> OpenFileStreamForReadAsync(string fileName);
         Task<ulong> GetFileSizeAsync(string fileName);
         Task DeleteFileAsync(string fileName);
+        Task DeleteFilesAsync(string filter);
         Task<bool> FileExistsAsync(string fileName);
     }
 }

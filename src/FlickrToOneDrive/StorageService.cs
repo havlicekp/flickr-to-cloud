@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using FlickrToOneDrive.Contracts.Interfaces;
 using Windows.Storage;
+using Windows.Storage.Search;
 
 namespace FlickrToOneDrive
 {
@@ -12,6 +14,22 @@ namespace FlickrToOneDrive
         {
             var file = await ApplicationData.Current.LocalFolder.GetItemAsync(fileName);
             await file.DeleteAsync(StorageDeleteOption.PermanentDelete);
+        }
+
+        public async Task DeleteFilesAsync(string filter)
+        {
+            var fileTypeFilter = new List<string>
+            {
+                filter
+            };
+
+            var queryOptions = new QueryOptions(CommonFileQuery.DefaultQuery, fileTypeFilter);
+            var queryResult = ApplicationData.Current.LocalFolder.CreateFileQueryWithOptions(queryOptions);
+            var files = await queryResult.GetFilesAsync().AsTask().ConfigureAwait(false);
+            foreach (var file in files)
+            {
+                await file.DeleteAsync();
+            }
         }
 
         public async Task<bool> FileExistsAsync(string fileName)
