@@ -31,15 +31,20 @@
                         <TextBlock Style="{StaticResource Message}" xml:space="preserve"> destination cloud system</TextBlock>
                     </StackPanel>
                 </StackPanel>
-                <StackPanel Visibility="{Binding SourceLoginNeeded}" HorizontalAlignment="Left">
+                <StackPanel Visibility="{Binding SourceLoginNeeded}" HorizontalAlignment="Left" Margin="0 15 0 0">
                     <TextBlock Style="{StaticResource Heading}">Source</TextBlock>
                     <StackPanel Orientation="Horizontal">
                         <Image Source="/Assets/Flickr.png" Width="24" Height="24"></Image>
                         <TextBlock Margin="10 0 20 0" VerticalAlignment="Center">Flickr</TextBlock>
-                        <Button Command="{Binding SourceLoginCommand}" Width="80">Login</Button>
+                        <Button Command="{Binding SourceLoginCommand}" Width="80">
+                            <StackPanel Orientation="Horizontal">
+                                <FontIcon Visibility="{Binding SourceIsAuthenticated}" FontFamily="Segoe MDL2 Assets" Glyph="&#xE73E;" VerticalAlignment="Center" Margin="0 0 5 0"/>
+                                <TextBlock VerticalAlignment="Center">Login</TextBlock>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </StackPanel>
-                <!--<TextBlock Margin="60 30 0 0" FontSize="20" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}">Destination</TextBlock>-->
+                
                 <TextBlock Style="{StaticResource Heading}">Destination</TextBlock>
                 <StackPanel Orientation="Horizontal">
                     <RadioButton IsChecked="True">
@@ -48,12 +53,17 @@
                             <TextBlock Margin="10 0 20 0" VerticalAlignment="Center">OneDrive</TextBlock>
                         </StackPanel>
                     </RadioButton>
-                    <Button Command="{Binding DestinationLoginCommand}" Width="80">Login</Button>
+                    <Button Command="{Binding DestinationLoginCommand}" Width="80">
+                        <StackPanel Orientation="Horizontal">
+                            <FontIcon Visibility="{Binding DestinationIsAuthenticated}" FontFamily="Segoe MDL2 Assets" Glyph="&#xE73E;" VerticalAlignment="Center" Margin="0 0 5 0"/>
+                            <TextBlock VerticalAlignment="Center">Login</TextBlock>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
-                <Button HorizontalAlignment="Right" Command="{Binding DestinationLoginCommand}" IsEnabled="False" Width="110" Margin="0 30 0 0">
+                <Button HorizontalAlignment="Right" Command="{Binding ContinueCommand}" IsEnabled="{Binding CanContinue}" Width="110" Margin="0 30 0 0">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock>Continue</TextBlock>
-                        <FontIcon FontWeight="ExtraBold" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5 3 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEBE7;" FontSize="14" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
+                        <FontIcon FontWeight="ExtraBold" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5 3 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEBE7;" FontSize="14" />
                     </StackPanel>
                 </Button>
             </StackPanel>

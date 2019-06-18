@@ -19,6 +19,7 @@ namespace FlickrToOneDrive.Core.ViewModels
         private readonly ICloudFileSystemFactory _cloudFactory;
         private readonly IAuthenticationCallbackDispatcher _callbackDispatcher;
         private Setup _setup;
+        private bool _canContinue;
 
         public LoginViewModel(IDialogService dialogService, ILogger log, IMvxNavigationService navigationService, ICloudFileSystemFactory cloudFactory, IAuthenticationCallbackDispatcher callbackDispatcher)
         {
@@ -29,11 +30,12 @@ namespace FlickrToOneDrive.Core.ViewModels
             _callbackDispatcher = callbackDispatcher;
             SourceLoginCommand = new MvxAsyncCommand(() => Login(_setup.Source));
             DestinationLoginCommand = new MvxAsyncCommand(() => Login(_setup.Destination));
+            ContinueCommand = new MvxAsyncCommand(Continue);
         }
 
         public ICommand SourceLoginCommand { get; set; }
-
         public ICommand DestinationLoginCommand { get; set; }
+        public ICommand ContinueCommand { get; set; }
 
         private async Task Login(ICloudFileSystem cloud)
         {
@@ -42,7 +44,10 @@ namespace FlickrToOneDrive.Core.ViewModels
                 var url = await cloud.GetAuthenticationUrl();
                 await _dialogService.ShowUrl(url);
 
-                var authenticated = SourceLoginNeeded ? _setup.Source.IsAuthenticated && _setup.Destination.IsAuthenticated : _setup.Destination.IsAuthenticated;
+                SourceIsAuthenticated = _setup.Source.IsAuthenticated;
+                DestinationIsAuthenticated = _setup.Destination.IsAuthenticated;
+
+                var authenticated = SourceLoginNeeded ? SourceIsAuthenticated && DestinationIsAuthenticated : DestinationIsAuthenticated;
                 if (authenticated)
                 {
                     if (_setup.Session == null)
@@ -57,24 +62,10 @@ namespace FlickrToOneDrive.Core.ViewModels
                             }; 
                             db.Sessions.Add(_setup.Session);
                             db.SaveChanges();
-                        }
+                        }                        
                     }
 
-                    switch (_setup.Session.State)
-                    {
-                        case SessionState.Created:
-                            await _navigationService.Navigate<SettingsViewModel, Setup>(_setup);
-                            break;
-                        case SessionState.DestinationFolderSet:
-                        case SessionState.CreatingFolders:
-                        case SessionState.ReadingSource:
-                        case SessionState.Uploading:
-                            await _navigationService.Navigate<UploadViewModel, Setup>(_setup);
-                            break;
-                        case SessionState.Checking:
-                            await _navigationService.Navigate<StatusViewModel, Setup>(_setup);
-                            break;
-                    }
+                    CanContinue = true;
                 }
             }
             catch (Exception e)
@@ -84,6 +75,48 @@ namespace FlickrToOneDrive.Core.ViewModels
                 _log.Error(e, message);
 
             }
+        }
+
+        public async Task Continue()
+        {
+            switch (_setup.Session.State)
+            {
+                case SessionState.Created:
+                    await _navigationService.Navigate<SettingsViewModel, Setup>(_setup);
+                    break;
+                case SessionState.DestinationFolderSet:
+                case SessionState.CreatingFolders:
+                case SessionState.ReadingSource:
+                case SessionState.Uploading:
+                    await _navigationService.Navigate<UploadViewModel, Setup>(_setup);
+                    break;
+                case SessionState.Checking:
+                    await _navigationService.Navigate<StatusViewModel, Setup>(_setup);
+                    break;
+            }
+        }
+
+
+        public bool CanContinue
+        {
+            get => _canContinue;
+            set
+            {
+                _canContinue = value;
+                RaisePropertyChanged(() => CanContinue);
+            }
+        }
+
+        public bool SourceIsAuthenticated
+        {
+            get => _setup.Source.IsAuthenticated;
+            set => RaisePropertyChanged(() => SourceIsAuthenticated);
+        }
+
+        public bool DestinationIsAuthenticated
+        {
+            get => _setup.Destination.IsAuthenticated;
+            set => RaisePropertyChanged(() => DestinationIsAuthenticated);
         }
 
         public bool SourceLoginNeeded
