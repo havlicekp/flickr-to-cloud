@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FlickrToOneDrive.Contracts;
@@ -27,8 +28,8 @@ namespace FlickrToOneDrive.Core.Services
         public event Action<UploadProgress> UploadStartingHandler;
         public event Action CreatingFoldersHandler;
         public event Action NothingToUploadHandler;
-        public event Action<int, int> CheckingStatusHandler;
-        public event Action<int, int, int, int> CheckingStatusFinishedHandler;
+        public event Action<StatusCheckProgress> CheckingStatusHandler;
+        public event Action<StatusCheckProgress> CheckingStatusFinishedHandler;
         public event Action<ReadingFilesProgress> ReadingFilesProgressHandler;
 
         public CloudCopyService(ILogger log, IStorageService storageService)
@@ -51,36 +52,40 @@ namespace FlickrToOneDrive.Core.Services
                 && (setup.Session.State <= SessionState.CreatingFolders))
             {
                 CreatingFoldersHandler?.Invoke();
-                CreateFolders(setup, ct);
+                await CreateFoldersAsync(setup, ct);
             }
 
             // Copy source to destination
             return await ResumeUpload(setup, retryFailed, ct);
         }
 
-        public async Task CheckStatus(Setup setup, CancellationToken ct)
+        public async Task CheckStatus(Setup setup, CancellationToken ct, StatusCheckProgress resumeProgress)
         {
-            using (var db = new CloudCopyContext())
+            var files = setup.Session.GetFiles();
+            var progress = new StatusCheckProgress { TotalItems = files.Count() };
+
+            if (resumeProgress != null)
             {
-                var files = db.Files.Where(f => f.SessionId == setup.Session.Id).ToList();
-                var fileCount = files.Count();
-                var progress = new StatusCheckProgress { TotalItems = fileCount };
+                // Skip already processed files
+                files = files.Skip(resumeProgress.ProcessedItems).ToList();
 
-                _log.Information($"Going to check status for {fileCount} file(s)");
+                progress.ProcessedItems = resumeProgress.ProcessedItems;
+                progress.ProcessedWithError = resumeProgress.ProcessedWithError;
+                progress.ProcessedWithSuccess = resumeProgress.ProcessedWithSuccess;
+            }         
 
-                await files.ForEachAsync(CheckFileStatus, setup, progress, ct);
+            _log.Information($"Going to check status for {files.Count()} file(s)");
 
-                var sessionFinished = files.All(f => f.State != FileState.InProgress);
-                if (sessionFinished)
-                {
-                    var session = db.Sessions.First(s => s.Id == setup.Session.Id);
-                    session.State = SessionState.Finished;
-                }
+            await files.ForEachAsync(CheckFileStatus, setup, progress, ct);
 
-                db.SaveChanges();
-
-                CheckingStatusFinishedHandler?.Invoke(progress.ProcessedWithSuccess, progress.ProcessedWithError, progress.InProgress, (int)((progress.ProcessedWithSuccess + progress.ProcessedWithError) * 100 / fileCount));
+            var sessionFinished = files.All(f => f.State != FileState.InProgress);
+            if (sessionFinished)
+            {
+                setup.Session.UpdateState(SessionState.Finished);
             }
+
+            CheckingStatusFinishedHandler?.Invoke(progress);
+
         }
 
         private async Task ReadSource(Setup setup, CancellationToken ct)
@@ -91,7 +96,7 @@ namespace FlickrToOneDrive.Core.Services
 
                 setup.Session.UpdateState(SessionState.ReadingSource);
 
-                var sourceFiles = await setup.Source.GetFiles(setup.Session.FilesOrigin, ct, (progress) =>
+                var sourceFiles = await setup.Source.GetFilesAsync(setup.Session.FilesOrigin, ct, (progress) =>
                 {
                     ReadingFilesProgressHandler?.Invoke(progress);
                 });
@@ -102,7 +107,6 @@ namespace FlickrToOneDrive.Core.Services
                     {
                         using (var transaction = await db.Database.BeginTransactionAsync())
                         {
-                            //db.ChangeTracker.AutoDetectChangesEnabled = false;
                             foreach (var file in sourceFiles)
                             {
                                 file.SessionId = setup.Session.Id;
@@ -110,7 +114,6 @@ namespace FlickrToOneDrive.Core.Services
                             await db.Files.AddRangeAsync(sourceFiles);
 
                             var session = db.Sessions.First(s => s.Id == setup.Session.Id);
-                            session.State = setup.Session.State = SessionState.Uploading;
                             await db.SaveChangesAsync();
                             transaction.Commit();
                         }
@@ -129,26 +132,21 @@ namespace FlickrToOneDrive.Core.Services
             }
             catch (Microsoft.Graph.ServiceException e)
             {
-                if (e.InnerException != null && e.InnerException is TaskCanceledException)
-                {
-                    _log.Information($"ReadingSource cancelled");
-                    throw new OperationCanceledException();
-                }
-                else
-                    throw new ReadingSourceException("Error getting files from Flickr", e, _log);
+                TryHandleGraphCancellation(e, "Error getting files from Flickr");
+                throw;
             }
             catch (Exception e)
             {
-                throw new ReadingSourceException("Error getting files from Flickr", e, _log);
+                throw new ReadingSourceException($"Error getting files from {setup.Source.Name}", e, _log);
             }
         }
 
         private async Task<bool> ResumeUpload(Setup setup, bool retryFailed, CancellationToken ct)
         {
-            ct.ThrowIfCancellationRequested();            
+            ct.ThrowIfCancellationRequested();
 
-            //setup.Session.UpdateState(SessionState.Uploading);
-            
+            setup.Session.UpdateState(SessionState.Uploading);
+          
             var files = new List<File>();
             files.AddRange(setup.Session.GetFiles(FileState.None));
             if (retryFailed)
@@ -165,21 +163,40 @@ namespace FlickrToOneDrive.Core.Services
 
             if (files.Any())
             {
-                await files.ForEachAsync(UploadFile, setup, progress, ct);
+                if (setup.Session.Mode == SessionMode.Local)
+                {
+                    // Upload file only once and copy its occurences on the remote server
+                    var groupedFiles = files.GroupBy(f => f.SourceId);
+                    await groupedFiles.ForEachAsync(UploadFileGroup, setup, progress, ct);
+                }
+                else
+                {
+                    // When uploading remotely (from URL) we can let destination cloud to download all files
+                    // There is no need to group the files and copy them on the remote server
+                    await files.ForEachAsync(UploadFile, setup, progress, ct);
+                }
             }
 
-            if (setup.Session.Mode == SessionMode.Local && progress.ProcessedWithError == 0 && !ct.IsCancellationRequested)
+            if (setup.Session.Mode == SessionMode.Local)
             {
-                // All files were uploaded without any errors, local session is considered finished
-                // For remote upload, session state is set to Finished during CheckStatus
-                setup.Session.UpdateState(SessionState.Finished);
+                var localSessionFinished = progress.ProcessedWithError == 0 && !ct.IsCancellationRequested;
+                if (localSessionFinished)
+                {
+                    // All files were uploaded without any errors, local session is considered finished
+                    // For remote upload, session state is set to Finished during CheckStatus
+                    setup.Session.UpdateState(SessionState.Finished);
+                }
+            }
+            else
+            {
+                setup.Session.UpdateState(SessionState.Checking);
             }
 
             UploadFinishedHandler?.Invoke(progress);
             return progress.ProcessedWithError == 0;
         }
 
-        private void CreateFolders(Setup setup, CancellationToken ct)
+        private async Task CreateFoldersAsync(Setup setup, CancellationToken ct)
         {
             setup.Session.UpdateState(SessionState.CreatingFolders);
 
@@ -188,26 +205,85 @@ namespace FlickrToOneDrive.Core.Services
             foreach (var folder in folders)
             {
                 ct.ThrowIfCancellationRequested();
-                var destinationFolder = setup.Session.DestinationFolder + folder;
-                setup.Destination.CreateFolder(destinationFolder);
+                var destinationFolder = CombinePath(setup.Session.DestinationFolder, folder);
+                await setup.Destination.CreateFolderAsync(destinationFolder, ct);
+            }
+        }
+
+        private async Task UploadFileGroup(IGrouping<string, File> fileGroup, Setup setup, UploadProgress progress, SemaphoreSlim semaphore, CancellationToken ct)
+        {
+            // Upload the first file
+            var uploadedFile = fileGroup.First();
+            await UploadFile(uploadedFile, setup, progress, semaphore, ct);
+
+            if (fileGroup.Count() > 1)
+            {
+                // Copy rest of the files on remote server
+                var filesToCopy = fileGroup.Where((file) => file != uploadedFile);
+                foreach (var fileToCopy in filesToCopy)
+                {                    
+                    await CopyRemoteFile(setup, progress, uploadedFile, fileToCopy, ct);
+                }
+            }
+        }
+
+        private async Task CopyRemoteFile(Setup setup, UploadProgress progress, File existingFile, File file, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                var fromFilePath = CombinePath(setup.Session.DestinationFolder, existingFile.SourcePath, existingFile.FileName);
+                var toPath = CombinePath(setup.Session.DestinationFolder, file.SourcePath);
+                await setup.Destination.CopyFileAsync(fromFilePath, toPath, ct);
+                file.UpdateState(FileState.Finished);
+                _log.Information($"Successuflly copied file from {fromFilePath} to {toPath}");
+                Interlocked.Increment(ref progress.ProcessedWithSuccess);
+            }
+            catch (OperationCanceledException)
+            {
+                _log.Information($"CopyRemoteFile cancelled ({file.FileName})");
+                throw;
+            }
+            catch (Microsoft.Graph.ServiceException e)
+            {
+                TryHandleGraphCancellation(e, $"CopyRemoteFile cancelled ({file.FileName})");
+                throw;
+            }
+            catch (Exception e)
+            {
+                file.SetFailedState(e);
+                Interlocked.Increment(ref progress.ProcessedWithError);
+                _log.Error(e, "Error while copying a remote file", e);
+            }
+
+            Interlocked.Increment(ref progress.ProcessedItems);
+            UploadProgressHandler?.Invoke(progress);
+        }
+
+        private void TryHandleGraphCancellation(Microsoft.Graph.ServiceException e, string message)
+        {
+            if (e.InnerException != null && e.InnerException is TaskCanceledException)
+            {
+                _log.Information(message);
+                throw new OperationCanceledException();
             }
         }
 
         private async Task UploadFile(File file, Setup setup, UploadProgress progress, SemaphoreSlim semaphore, CancellationToken ct)
-        {
-            await semaphore.WaitAsync();
-
+        {            
             _log.Verbose($"Uploading file ID: {file.Id}, URL: {file.SourceUrl}");
-            var destinationFilePath = $"{setup.Session.DestinationFolder}{file.SourcePath}/{file.FileName}";
 
+            await semaphore.WaitAsync();
             try
             {
                 if (setup.Session.Mode == SessionMode.Local)
                 {
+                    var destinationFilePath = CombinePath(setup.Session.DestinationFolder, file.SourcePath, file.FileName);
                     await UploadFileLocaly(file, setup, destinationFilePath, ct);
                 }
                 else
                 {
+                    var destinationFilePath = CombinePath(setup.Session.DestinationFolder, file.SourcePath);
                     await UploadFileRemotely(file, setup, destinationFilePath, ct);
                 }
 
@@ -220,29 +296,12 @@ namespace FlickrToOneDrive.Core.Services
             }
             catch (Microsoft.Graph.ServiceException e)
             {
-                if (e.InnerException != null && e.InnerException is TaskCanceledException)
-                {
-                    _log.Information($"UploadFile cancelled ({file.FileName})");
-                    throw new OperationCanceledException();
-                }
-                else
-                    throw;
+                TryHandleGraphCancellation(e, $"UploadFile cancelled ({file.FileName})");
+                throw;
             }
             catch (Exception e)
             {
-                using (var db = new CloudCopyContext())
-                {
-                    var dbFile = db.Files.FirstOrDefault(f => f.Id == file.Id);
-
-                    // dbFile can be null when cancelling a session
-                    if (dbFile != null)
-                    {
-                        dbFile.State = FileState.Failed;
-                        dbFile.ResponseData = e.Message;
-                        await db.SaveChangesAsync();
-                    }
-                }
-
+                file.SetFailedState(e);
                 Interlocked.Increment(ref progress.ProcessedWithError);
                 _log.Error(e, "Error while uploading a file", e);
             }
@@ -251,14 +310,14 @@ namespace FlickrToOneDrive.Core.Services
                 semaphore.Release();
             }
 
+            // Increment number of processed items even when an exception occurs
             Interlocked.Increment(ref progress.ProcessedItems);
-            //UploadProgressHandler?.Invoke(progress.ProcessedItems * 100 / progress.TotalItems, progress);
             UploadProgressHandler?.Invoke(progress);
         }
 
-        private async Task UploadFileRemotely(File file, Setup setup, string destinationFilePath, CancellationToken ct)
+        private async Task UploadFileRemotely(File file, Setup setup, string destinationPath, CancellationToken ct)
         {
-            var monitorUrl = await setup.Destination.UploadFileFromUrl(destinationFilePath, file);
+            var monitorUrl = await setup.Destination.UploadFileFromUrlAsync(destinationPath, file, ct);
             file.UpdateMonitorUrl(monitorUrl);
             _log.Information($"UploadFileRemotely succeeded (@File)", file);
         }
@@ -270,7 +329,7 @@ namespace FlickrToOneDrive.Core.Services
             try
             {
                 await DownloadFile(file.SourceUrl, localFileName, ct);
-                await setup.Destination.UploadFile(destinationFilePath, localFileName, ct);
+                await setup.Destination.UploadFileAsync(destinationFilePath, localFileName, ct);
                 file.UpdateState(FileState.Finished);
                 _log.Information($"UploadFileLocaly succeeded (@File)", file);
             }
@@ -282,46 +341,70 @@ namespace FlickrToOneDrive.Core.Services
         }
 
         private async Task CheckFileStatus(File file, Setup setup, StatusCheckProgress progress, SemaphoreSlim semaphore, CancellationToken ct)
-        {
-            await semaphore.WaitAsync();
-
-            switch (file.State)
+        {            
+            await semaphore.WaitAsync();            
+            try
             {
-                case FileState.InProgress:
-                    var status = await setup.Destination.CheckOperationStatus(file);
-                    file.ResponseData = status.RawResponse;
-                    if (status.SuccessResponseCode)
-                    {
-                        if (status.PercentageComplete == 100)
+                switch (file.State)
+                {
+                    case FileState.InProgress:
+                        var status = await setup.Destination.CheckOperationStatusAsync(file, ct);
+                        file.UpdateResponseData(status.RawResponse);
+                        if (status.SuccessResponseCode)
                         {
-                            file.State = FileState.Finished;
-                            Interlocked.Increment(ref progress.ProcessedWithSuccess);
+                            if (status.PercentageComplete == 100)
+                            {
+                                file.UpdateState(FileState.Finished);
+                                Interlocked.Increment(ref progress.ProcessedWithSuccess);
+                            }
+                            else
+                            {
+                                Interlocked.Increment(ref progress.InProgress);
+                            }
                         }
                         else
                         {
-                            Interlocked.Increment(ref progress.InProgress);
+                            file.UpdateState(FileState.Failed);
+                            Interlocked.Increment(ref progress.ProcessedWithError);
                         }
-                    }
-                    else
-                    {
-                        file.State = FileState.Failed;
-                        Interlocked.Increment(ref progress.ProcessedWithError);
-                    }
 
-                    break;
-                case FileState.Finished:
-                    Interlocked.Increment(ref progress.ProcessedWithSuccess);
-                    break;
-                case FileState.Failed:
-                    Interlocked.Increment(ref progress.ProcessedWithError);
-                    break;
+                        break;
+                    case FileState.Finished:
+                        Interlocked.Increment(ref progress.ProcessedWithSuccess);
+                        break;
+                    case FileState.Failed:
+                        Interlocked.Increment(ref progress.ProcessedWithError);
+                        break;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _log.Information("Checking file status cancelled");
+                throw;
+            }
+            catch (Microsoft.Graph.ServiceException e)
+            {
+                TryHandleGraphCancellation(e, "Checking file status cancelled");
+                throw;
+            }
+            catch (CloudCopyException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                throw new ReadingSourceException($"Error checking file status {file.FileName}", e, _log);
+            }
+            finally
+            {
+                semaphore.Release();
             }
 
             Interlocked.Increment(ref progress.ProcessedItems);
-            CheckingStatusHandler?.Invoke(progress.ProcessedItems * 100 / progress.TotalItems, progress.ProcessedItems);
+            CheckingStatusHandler?.Invoke(progress);
         }
 
-        public async Task DownloadFile(string sourceUrl, string localFileName, CancellationToken ct)
+        private async Task DownloadFile(string sourceUrl, string localFileName, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             using (var client = new HttpClient())
@@ -330,6 +413,23 @@ namespace FlickrToOneDrive.Core.Services
             {
                 await inputStream.CopyToAsync(outputStream, 81920, ct);
             }
+        }
+
+        private string CombinePath(params string[] parameters)
+        {
+            // /Test + /
+            var result = new StringBuilder();
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var p = parameters[i].TrimStart('/').TrimEnd('/');
+                if (p.Length != 0)
+                    result.Append($"/{p}");
+            }
+
+            if (result.Length == 0)
+                return "/";
+            else
+                return result.ToString();
         }
 
     }
