@@ -129,7 +129,12 @@ namespace FlickrToOneDrive.Clouds.Flickr
                 ct);
         }
 
-        private static FlickrPhotoset GetPhotosetFromJson(JObject json, int i)
+        public bool IsFlickrCallbackUrl(string callbackUrl)
+        {
+            return callbackUrl.StartsWith(_callbackUrl);
+        }
+
+        private FlickrPhotoset GetPhotosetFromJson(JObject json, int i)
         {
             var photoset = json["photosets"]["photoset"][i];
             var title = (string)photoset["title"]["_content"];
@@ -141,17 +146,18 @@ namespace FlickrToOneDrive.Clouds.Flickr
             };
         }
 
-        private static FlickrPhoto GetPhotoFromJson(JToken json, int i)
+        private FlickrPhoto GetPhotoFromJson(JToken json, int i)
         {
             var photo = json["photo"][i];
+            var id = (string)photo["id"];
             var url_o = (string)photo["url_o"];
             var title = (string)photo["title"];
             var album = (string)json["title"];
             return new FlickrPhoto
             {
+                Id = id,
                 Url = url_o,
-                Title = title,
-                FileName = Path.GetFileName(url_o),
+                Title = title,                
                 AlbumName = album
             };
         }
@@ -225,11 +231,5 @@ namespace FlickrToOneDrive.Clouds.Flickr
                 return jsonObj;
             }
         }
-
-        public bool IsFlickrCallbackUrl(string callbackUrl)
-        {
-            return callbackUrl.StartsWith(_callbackUrl);
-        }
-
     }
 }

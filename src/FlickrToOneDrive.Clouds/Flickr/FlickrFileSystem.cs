@@ -28,7 +28,7 @@ namespace FlickrToOneDrive.Clouds.Flickr
 
         public bool IsAuthenticated => _isAuthenticated;
 
-        public async Task<File[]> GetFiles(SessionFilesOrigin filesOrigin, CancellationToken ct, Action<ReadingFilesProgress> progressHandler)
+        public async Task<File[]> GetFilesAsync(SessionFilesOrigin filesOrigin, CancellationToken ct, Action<ReadingFilesProgress> progressHandler)
         {
             var result = new List<File>();            
 
@@ -44,7 +44,8 @@ namespace FlickrToOneDrive.Clouds.Flickr
                     {
                         result.Add(new File
                         {
-                            FileName = photo.FileName,
+                            SourceId = photo.Id,
+                            FileName = ReplaceInvalidPathChars($"{photo.Title}{Path.GetExtension(photo.Url)}", "_"),
                             SourceUrl = photo.Url,
                             SourcePath = "/" + ReplaceInvalidPathChars(photo.AlbumName, "_")
                         });
@@ -69,7 +70,8 @@ namespace FlickrToOneDrive.Clouds.Flickr
                 {
                     result.Add(new File
                     {
-                        FileName = photo.FileName,
+                        SourceId = photo.Id,
+                        FileName = ReplaceInvalidPathChars($"{photo.Title}{Path.GetExtension(photo.Url)}", "_"),
                         SourceUrl = photo.Url,
                         SourcePath = "/"
                     });
@@ -77,17 +79,6 @@ namespace FlickrToOneDrive.Clouds.Flickr
             }
 
             return result.ToArray();
-        }
-
-        private string ReplaceInvalidPathChars(string path, string replaceWith)
-        {
-            string invalidChars = new string(Path.GetInvalidFileNameChars());
-            foreach (char c in invalidChars)
-            {
-                path = path.Replace(c.ToString(), replaceWith);
-            }
-
-            return path;
         }
 
         public async Task<string> GetAuthenticationUrl()
@@ -124,27 +115,27 @@ namespace FlickrToOneDrive.Clouds.Flickr
             }
         }
 
-        public Task<string> UploadFileFromUrl(string path, File file)
+        public Task<string> UploadFileFromUrlAsync(string path, File file, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
 
-        public Task<OperationStatus> CheckOperationStatus(File file)
+        public Task<OperationStatus> CheckOperationStatusAsync(File file, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
 
-        public Task<bool> FolderExists(string folder)
+        public Task<bool> FolderExistsAsync(string folder, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
 
-        public Task<bool> CreateFolder(string folder)
+        public Task<bool> CreateFolderAsync(string folder, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
 
-        public Task<string[]> GetSubFolders(string folder)
+        public Task<string[]> GetSubFoldersAsync(string folder, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
@@ -154,9 +145,26 @@ namespace FlickrToOneDrive.Clouds.Flickr
             throw new NotImplementedException();
         }
 
-        public Task UploadFile(string destinationFilePath, string localFileName, CancellationToken ct)
+        public Task UploadFileAsync(string destinationFilePath, string localFileName, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
+
+        public Task CopyFileAsync(string fromPath, string toPath, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
+        private string ReplaceInvalidPathChars(string path, string replaceWith)
+        {
+            string invalidChars = new string(Path.GetInvalidFileNameChars());
+            foreach (char c in invalidChars)
+            {
+                path = path.Replace(c.ToString(), replaceWith);
+            }
+
+            return path;
+        }
+
     }
 }
