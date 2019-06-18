@@ -14,9 +14,9 @@ namespace FlickrToOneDrive.Contracts.Interfaces
         event Action<ReadingFilesProgress> ReadingFilesProgressHandler;
         event Action CreatingFoldersHandler;
         event Action NothingToUploadHandler;
-        event Action<int, int> CheckingStatusHandler;
-        event Action<int, int, int, int> CheckingStatusFinishedHandler;
+        event Action<StatusCheckProgress> CheckingStatusHandler;
+        event Action<StatusCheckProgress> CheckingStatusFinishedHandler;
         Task<bool> Copy(Setup setup, bool retryFailed, CancellationToken ct);
-        Task CheckStatus(Setup setup, CancellationToken ct);
+        Task CheckStatus(Setup setup, CancellationToken ct, StatusCheckProgress resumeProgress);
     }
 }
