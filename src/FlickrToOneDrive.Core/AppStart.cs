@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using FlickrToOneDrive.Contracts;
+using FlickrToOneDrive.Contracts.Interfaces;
 using FlickrToOneDrive.Contracts.Models;
 using FlickrToOneDrive.Core.ViewModels;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +16,13 @@ namespace FlickrToOneDrive.Core
     public class AppStart : MvxAppStart
     {
         private readonly IMvxNavigationService _navigationService;
+        private readonly IStorageService _storageService;
         private readonly ILogger _log;
 
-        public AppStart(IMvxApplication application, IMvxNavigationService navigationService, ILogger log) : base(application, navigationService)
+        public AppStart(IMvxApplication application, IMvxNavigationService navigationService, ILogger log, IStorageService storageService) : base(application, navigationService)
         {
             _navigationService = navigationService;
+            _storageService = storageService;
             _log = log.ForContext(GetType());
         }
 
@@ -27,6 +30,9 @@ namespace FlickrToOneDrive.Core
         {
             try
             {
+                // Cleanup any temporary files
+                _storageService.DeleteFilesAsync(".tmp").GetAwaiter().GetResult();
+
                 var sessions = GetExistingSessions();
                 if (sessions.Any())
                 {
