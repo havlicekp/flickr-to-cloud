@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace FlickrToOneDrive.Contracts.Migrations
 {
-    public partial class AddSessionEnhancements : Migration
+    public partial class InitialCreate : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -33,6 +33,7 @@ namespace FlickrToOneDrive.Contracts.Migrations
                     Id = table.Column<int>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     SessionId = table.Column<int>(nullable: false),
+                    SourceId = table.Column<string>(nullable: true),
                     SourceUrl = table.Column<string>(nullable: true),
                     SourcePath = table.Column<string>(nullable: true),
                     FileName = table.Column<string>(nullable: true),

@@ -9,8 +9,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FlickrToOneDrive.Contracts.Migrations
 {
     [DbContext(typeof(CloudCopyContext))]
-    [Migration("20190606204159_AddSessionEnhancements")]
-    partial class AddSessionEnhancements
+    [Migration("20190617082653_InitialCreate")]
+    partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -30,6 +30,8 @@ namespace FlickrToOneDrive.Contracts.Migrations
                     b.Property<string>("ResponseData");
 
                     b.Property<int>("SessionId");
+
+                    b.Property<string>("SourceId");
 
                     b.Property<string>("SourcePath");
 

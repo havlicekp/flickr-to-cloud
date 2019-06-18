@@ -29,6 +29,8 @@ namespace FlickrToOneDrive.Contracts.Migrations
 
                     b.Property<int>("SessionId");
 
+                    b.Property<string>("SourceId");
+
                     b.Property<string>("SourcePath");
 
                     b.Property<string>("SourceUrl");

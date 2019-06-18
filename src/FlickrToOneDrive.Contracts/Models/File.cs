@@ -7,6 +7,7 @@ namespace FlickrToOneDrive.Contracts.Models
     {
         public Session Session { get; set; }
         public int SessionId { get; set; }
+        public string SourceId { get; set; }
         public string SourceUrl { get; set; }
         public string SourcePath { get; set; }
         public string FileName { get; set; }
