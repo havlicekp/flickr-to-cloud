@@ -1,11 +1,11 @@
-﻿using FlickrToOneDrive.Clouds.Flickr;
-using FlickrToOneDrive.Contracts.Exceptions;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Clouds.OneDrive;
+﻿using FlickrToCloud.Clouds.Flickr;
+using FlickrToCloud.Clouds.OneDrive;
+using FlickrToCloud.Contracts.Exceptions;
+using FlickrToCloud.Contracts.Interfaces;
 using MvvmCross;
 using Serilog;
 
-namespace FlickrToOneDrive.Core
+namespace FlickrToCloud.Core
 {
     public class CloudFileSystemFactory : ICloudFileSystemFactory
     {

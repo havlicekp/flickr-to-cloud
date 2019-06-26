@@ -1,17 +1,17 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using FlickrToOneDrive.Contracts;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts.Models;
-using FlickrToOneDrive.Core.ViewModels;
+using FlickrToCloud.Contracts;
+using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Models;
+using FlickrToCloud.Core.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using MvvmCross.Exceptions;
 using MvvmCross.Navigation;
 using MvvmCross.ViewModels;
 using Serilog;
 
-namespace FlickrToOneDrive.Core
+namespace FlickrToCloud.Core
 {
     public class AppStart : MvxAppStart
     {
@@ -23,8 +23,8 @@ namespace FlickrToOneDrive.Core
         {
             _navigationService = navigationService;
             _storageService = storageService;
-            _log = log.ForContext(GetType());
-        }
+            _log = log.ForContext(GetType());            
+        }        
 
         protected override Task NavigateToFirstViewModel(object hint = null)
         {

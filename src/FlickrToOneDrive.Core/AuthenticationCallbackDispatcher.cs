@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using FlickrToOneDrive.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Interfaces;
 
-namespace FlickrToOneDrive.Core
+namespace FlickrToCloud.Core
 {
     public class AuthenticationCallbackDispatcher : IAuthenticationCallbackDispatcher
     {

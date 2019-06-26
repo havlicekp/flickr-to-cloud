@@ -1,17 +1,17 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using FlickrToOneDrive.Clouds.Flickr;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts.Models;
-using FlickrToOneDrive.Contracts.Progress;
-using FlickrToOneDrive.Core.Services;
+using FlickrToCloud.Clouds.Flickr;
+using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Models;
+using FlickrToCloud.Contracts.Progress;
+using FlickrToCloud.Core.Services;
 using Moq;
 using MvvmCross;
 using MvvmCross.IoC;
 using MvvmCross.ViewModels;
 
-namespace FlickrToOneDrive.Core
+namespace FlickrToCloud.Core
 {
     public class App : MvxApplication
     {
