@@ -1,12 +1,12 @@
 ﻿using System;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using FlickrToOneDrive.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Interfaces;
 using MvvmCross.IoC;
 
-namespace FlickrToOneDrive.Dialogs
+namespace FlickrToCloud.Dialogs
 {
-    public sealed partial class LoginDialog : ContentDialog
+    public sealed partial class LoginDialog
     {
         public string Url { get; set; }
 
@@ -20,7 +20,7 @@ namespace FlickrToOneDrive.Dialogs
             WebView.Navigate(new Uri(Url));
         }
 
-        private async void WebView_OnNavigationStarting(WebView sender, WebViewNavigationStartingEventArgs args)
+        private async void OnNavigationStarting(WebView sender, WebViewNavigationStartingEventArgs args)
         {
             try
             {
@@ -33,6 +33,13 @@ namespace FlickrToOneDrive.Dialogs
                 var dialogService = MvxIoCProvider.Instance.Resolve<IDialogService>();
                 await dialogService.ShowDialog("Error", e.Message);
             }
+        }
+
+        private void OnPrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+        {
+            WebView.ClearTemporaryWebDataAsync().GetAwaiter().GetResult();
+            WebView.Navigate(new Uri(Url));
+            args.Cancel = true;
         }
     }
 }

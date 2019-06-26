@@ -1,7 +1,7 @@
 ﻿using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 
-namespace FlickrToOneDrive.Dialogs
+namespace FlickrToCloud.Dialogs
 {
     public sealed partial class InputDialog : ContentDialog
     {

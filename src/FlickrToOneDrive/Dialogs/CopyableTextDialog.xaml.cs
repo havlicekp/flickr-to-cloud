@@ -1,7 +1,7 @@
 ﻿using Windows.ApplicationModel.DataTransfer;
 using Windows.UI.Xaml.Controls;
 
-namespace FlickrToOneDrive.Dialogs
+namespace FlickrToCloud.Dialogs
 {
     public sealed partial class CopyableTextDialog : ContentDialog
     {

@@ -1,15 +1,17 @@
 ﻿<ContentDialog
-    x:Class="FlickrToOneDrive.Dialogs.LoginDialog"
+    x:Class="FlickrToCloud.Dialogs.LoginDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Loaded="OnLoaded"
-    PrimaryButtonText="Cancel"
+    PrimaryButtonText="Reset"
+    PrimaryButtonClick="OnPrimaryButtonClick"
+    CloseButtonText="Close"
     MinWidth="400">
 
     <Grid Height="700" Width="400">
-        <WebView x:Name="WebView" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" NavigationStarting="WebView_OnNavigationStarting" />
+        <WebView x:Name="WebView" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" NavigationStarting="OnNavigationStarting" />
     </Grid>
 </ContentDialog>

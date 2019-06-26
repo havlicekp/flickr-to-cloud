@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Windows.UI.Xaml.Controls;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts;
-using FlickrToOneDrive.Dialogs;
+using FlickrToCloud.Contracts;
+using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Dialogs;
 using Nito.AsyncEx;
 
-namespace FlickrToOneDrive
+namespace FlickrToCloud
 {
     public class DialogService : IDialogService
     {
