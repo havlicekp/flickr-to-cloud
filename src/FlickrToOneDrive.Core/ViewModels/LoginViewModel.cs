@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using FlickrToOneDrive.Contracts;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts.Models;
+using FlickrToCloud.Contracts;
+using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Models;
 using MvvmCross.Commands;
 using MvvmCross.Navigation;
 using MvvmCross.ViewModels;
 using Serilog;
 
-namespace FlickrToOneDrive.Core.ViewModels
+namespace FlickrToCloud.Core.ViewModels
 {
     public class LoginViewModel : MvxViewModel<Setup>
     {
@@ -30,7 +30,7 @@ namespace FlickrToOneDrive.Core.ViewModels
             _callbackDispatcher = callbackDispatcher;
             SourceLoginCommand = new MvxAsyncCommand(() => Login(_setup.Source));
             DestinationLoginCommand = new MvxAsyncCommand(() => Login(_setup.Destination));
-            ContinueCommand = new MvxAsyncCommand(Continue);
+            ContinueCommand = new MvxAsyncCommand(ContinueSetup);
         }
 
         public ICommand SourceLoginCommand { get; set; }
@@ -77,14 +77,11 @@ namespace FlickrToOneDrive.Core.ViewModels
             }
         }
 
-        public async Task Continue()
+        public async Task ContinueSetup()
         {
             switch (_setup.Session.State)
             {
-                case SessionState.Created:
-                    await _navigationService.Navigate<SettingsViewModel, Setup>(_setup);
-                    break;
-                case SessionState.DestinationFolderSet:
+                // For session already started, skip settings and jump directly to upload/status check
                 case SessionState.CreatingFolders:
                 case SessionState.ReadingSource:
                 case SessionState.Uploading:
@@ -92,6 +89,10 @@ namespace FlickrToOneDrive.Core.ViewModels
                     break;
                 case SessionState.Checking:
                     await _navigationService.Navigate<StatusViewModel, Setup>(_setup);
+                    break;
+                default:
+                    // For session not started yet, move to settings
+                    await _navigationService.Navigate<SettingsViewModel, Setup>(_setup);
                     break;
             }
         }
