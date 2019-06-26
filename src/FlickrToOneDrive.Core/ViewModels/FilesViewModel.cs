@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using FlickrToOneDrive.Contracts;
-using FlickrToOneDrive.Contracts.Models;
+using FlickrToCloud.Contracts;
+using FlickrToCloud.Contracts.Models;
 using MvvmCross.ViewModels;
 
-namespace FlickrToOneDrive.Core.ViewModels
+namespace FlickrToCloud.Core.ViewModels
 {
     public class FilesViewModel : MvxViewModel<Setup>
     {
@@ -22,10 +22,7 @@ namespace FlickrToOneDrive.Core.ViewModels
             }
         }
 
-        public Session Session
-        {
-            get { return _setup.Session; }
-        }
+        public Session Session => _setup.Session;
 
         public ICollection<File> Files => _files;
     }
