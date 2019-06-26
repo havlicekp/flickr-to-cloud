@@ -1,7 +1,7 @@
-﻿using FlickrToOneDrive.Contracts.Models;
+﻿using FlickrToCloud.Contracts.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FlickrToOneDrive.Contracts
+namespace FlickrToCloud.Contracts
 {
     public class CloudCopyContext : DbContext
     {
