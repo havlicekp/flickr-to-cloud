@@ -5,19 +5,19 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using FlickrToOneDrive.Contracts;
-using FlickrToOneDrive.Contracts.Exceptions;
-using FlickrToOneDrive.Contracts.Extensions;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts.Models;
-using FlickrToOneDrive.Contracts.Progress;
-using FlickrToOneDrive.Core.Extensions;
-using Microsoft.EntityFrameworkCore;
+using Castle.Core.Internal;
+using FlickrToCloud.Contracts;
+using FlickrToCloud.Contracts.Exceptions;
+using FlickrToCloud.Contracts.Extensions;
+using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Models;
+using FlickrToCloud.Contracts.Progress;
+using FlickrToCloud.Core.Extensions;
 using Serilog;
 
-namespace FlickrToOneDrive.Core.Services
+namespace FlickrToCloud.Core.Services
 {
-    public partial class CloudCopyService : ICloudCopyService
+    public class CloudCopyService : ICloudCopyService
     {
         private readonly ILogger _log;
         private readonly IStorageService _storageService;
@@ -27,7 +27,6 @@ namespace FlickrToOneDrive.Core.Services
         public event Action ReadingFilesStartingHandler;
         public event Action<UploadProgress> UploadStartingHandler;
         public event Action CreatingFoldersHandler;
-        public event Action NothingToUploadHandler;
         public event Action<StatusCheckProgress> CheckingStatusHandler;
         public event Action<StatusCheckProgress> CheckingStatusFinishedHandler;
         public event Action<ReadingFilesProgress> ReadingFilesProgressHandler;
@@ -113,16 +112,14 @@ namespace FlickrToOneDrive.Core.Services
                             }
                             await db.Files.AddRangeAsync(sourceFiles);
 
-                            var session = db.Sessions.First(s => s.Id == setup.Session.Id);
                             await db.SaveChangesAsync();
                             transaction.Commit();
                         }
                     }
-                }
-                else
-                {
-                    NothingToUploadHandler?.Invoke();
-                    _log.Warning($"No files found on {setup.Source.Name}");
+
+                    // Return here. If there are no files to process there
+                    // is an exception thrown at the end of the method
+                    return;
                 }
             }
             catch (OperationCanceledException)
@@ -132,13 +129,16 @@ namespace FlickrToOneDrive.Core.Services
             }
             catch (Microsoft.Graph.ServiceException e)
             {
-                TryHandleGraphCancellation(e, "Error getting files from Flickr");
+                TryHandleGraphCancellation(e, "ReadSource cancelled");
                 throw;
             }
             catch (Exception e)
             {
                 throw new ReadingSourceException($"Error getting files from {setup.Source.Name}", e, _log);
             }
+
+            _log.Warning($"No files found on {setup.Source.Name}");
+            throw new NothingToUploadException();
         }
 
         private async Task<bool> ResumeUpload(Setup setup, bool retryFailed, CancellationToken ct)
@@ -146,18 +146,16 @@ namespace FlickrToOneDrive.Core.Services
             ct.ThrowIfCancellationRequested();
 
             setup.Session.UpdateState(SessionState.Uploading);
-          
+
             var files = new List<File>();
             files.AddRange(setup.Session.GetFiles(FileState.None));
-            if (retryFailed)
-            {
-                var failedFiles = setup.Session.GetFiles(FileState.Failed);
-                files.AddRange(failedFiles);
-            }
 
-            var finishedState = setup.Session.Mode == SessionMode.Local ? FileState.Finished : FileState.InProgress;
-            var finishedFilesCount = setup.Session.GetFiles(finishedState).Count;
-            var progress = new UploadProgress { TotalItems = files.Count(), ProcessedItems = finishedFilesCount };
+            var failedFiles = setup.Session.GetFiles(FileState.Failed);
+            files.AddRange(failedFiles);
+            
+            var uploadedFileState = setup.Session.Mode == SessionMode.Local ? FileState.Finished : FileState.InProgress;
+            var uploadedFilesCount = setup.Session.GetFiles(uploadedFileState).Count;
+            var progress = new UploadProgress { TotalItems = files.Count() + uploadedFilesCount, ProcessedItems = uploadedFilesCount };
 
             UploadStartingHandler?.Invoke(progress);
 
@@ -177,23 +175,21 @@ namespace FlickrToOneDrive.Core.Services
                 }
             }
 
-            if (setup.Session.Mode == SessionMode.Local)
+            //var uploadFinished = progress.ProcessedWithError == 0 && !ct.IsCancellationRequested;
+            var uploadFinished = setup.Session.GetFiles(FileState.Failed).IsNullOrEmpty();
+            if (uploadFinished)
             {
-                var localSessionFinished = progress.ProcessedWithError == 0 && !ct.IsCancellationRequested;
-                if (localSessionFinished)
-                {
-                    // All files were uploaded without any errors, local session is considered finished
-                    // For remote upload, session state is set to Finished during CheckStatus
-                    setup.Session.UpdateState(SessionState.Finished);
-                }
-            }
-            else
-            {
-                setup.Session.UpdateState(SessionState.Checking);
+                // All files were uploaded without any errors, local session is considered finished
+                // For remote upload, session state is set to Finished during CheckStatus
+                var finishedSessionState = setup.Session.Mode == SessionMode.Local
+                    ? SessionState.Finished
+                    : SessionState.Checking;
+                setup.Session.UpdateState(finishedSessionState);
             }
 
             UploadFinishedHandler?.Invoke(progress);
-            return progress.ProcessedWithError == 0;
+            //return progress.ProcessedWithError == 0;
+            return uploadFinished;
         }
 
         private async Task CreateFoldersAsync(Setup setup, CancellationToken ct)
@@ -262,9 +258,9 @@ namespace FlickrToOneDrive.Core.Services
 
         private void TryHandleGraphCancellation(Microsoft.Graph.ServiceException e, string message)
         {
-            if (e.InnerException != null && e.InnerException is TaskCanceledException)
+            _log.Error(e, "Microsoft Graph exception");
+            if (e.InnerException != null && (e.InnerException is TaskCanceledException || e.InnerException is OperationCanceledException))
             {
-                _log.Information(message);
                 throw new OperationCanceledException();
             }
         }
@@ -273,7 +269,7 @@ namespace FlickrToOneDrive.Core.Services
         {            
             _log.Verbose($"Uploading file ID: {file.Id}, URL: {file.SourceUrl}");
 
-            await semaphore.WaitAsync();
+            await semaphore.WaitAsync(ct);
             try
             {
                 if (setup.Session.Mode == SessionMode.Local)
