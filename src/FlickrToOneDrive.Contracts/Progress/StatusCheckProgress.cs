@@ -1,4 +1,4 @@
-﻿namespace FlickrToOneDrive.Contracts.Progress
+﻿namespace FlickrToCloud.Contracts.Progress
 {
     public class StatusCheckProgress : UploadProgress
     {
