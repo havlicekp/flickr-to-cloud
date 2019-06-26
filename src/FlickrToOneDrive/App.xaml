@@ -1,7 +1,10 @@
-﻿<local:FlickrToOneDriveApp x:Class="FlickrToOneDrive.App"
+﻿<flickrToCloud:Application x:Class="FlickrToCloud.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:FlickrToOneDrive" RequestedTheme="Dark">
+    xmlns:local="using:FlickrToOneDrive"
+    xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
+    xmlns:core="using:Microsoft.Xaml.Interactions.Core"
+    xmlns:flickrToCloud="using:FlickrToCloud">
     <Application.Resources>
         
         <!-- TextBlock Styles -->
@@ -32,7 +35,30 @@
             <Setter Property="Margin" Value="0 10 10 10"/>
         </Style>
 
-        <!--<Button HorizontalAlignment="Center" Width="200" Command="{Binding SourceLoginCommand}"  Margin="15">Login to Flickr</Button>-->
+        <!-- Since TextBox inside a button doesn't reflect disabled/enabled color of the parent Button these 
+        behaviors provide the missing link. The parent button has to be named btnContinue
+        => create a dependency property which would link the TextBox with the Button? -->
+        <interactivity:BehaviorCollection x:Key="ContinueTextBoxBehaviors">
+            <interactivity:Interaction.Behaviors>
+                <core:DataTriggerBehavior Binding="{Binding IsEnabled, ElementName=btnContinue}" Value="False">
+                    <core:ChangePropertyAction PropertyName="Foreground" Value="{StaticResource ButtonDisabledForegroundThemeBrush}" />
+                </core:DataTriggerBehavior>
+                <core:DataTriggerBehavior Binding="{Binding IsEnabled, ElementName=btnContinue}" Value="True">
+                    <core:ChangePropertyAction PropertyName="Foreground" Value="{StaticResource ButtonForegroundThemeBrush}" />
+                </core:DataTriggerBehavior>
+            </interactivity:Interaction.Behaviors>
+        </interactivity:BehaviorCollection>
+
+        <Style TargetType="TextBlock" x:Key="ContinueTextBoxStyle">
+            <Setter Property="interactivity:Interaction.Behaviors" Value="{StaticResource ContinueTextBoxBehaviors}" />
+        </Style>
+
+        <DataTemplate x:Key="ContinueButtonTemplate">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Continue" Style="{StaticResource ContinueTextBoxStyle}" />
+                <FontIcon FontWeight="ExtraBold" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5 3 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEBE7;" FontSize="14" />
+            </StackPanel>
+        </DataTemplate>
 
     </Application.Resources>
-</local:FlickrToOneDriveApp>
+</flickrToCloud:Application>
