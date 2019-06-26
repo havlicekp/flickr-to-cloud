@@ -1,10 +1,10 @@
 ﻿using Windows.System;
 using Windows.UI.Xaml.Input;
-using FlickrToOneDrive.Core.ViewModels;
+using FlickrToCloud.Core.ViewModels;
 using MvvmCross.Platforms.Uap.Views;
 using MvvmCross.ViewModels;
 
-namespace FlickrToOneDrive.Views
+namespace FlickrToCloud.Views
 {
     [MvxViewFor(typeof(SessionsViewModel))]
     public sealed partial class SessionsPage : MvxWindowsPage

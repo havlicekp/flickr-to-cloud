@@ -1,15 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using FlickrToOneDrive.Contracts;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts.Models;
+using FlickrToCloud.Contracts;
+using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Models;
 using MvvmCross.Commands;
 using MvvmCross.Navigation;
 using MvvmCross.ViewModels;
 using Serilog;
 
-namespace FlickrToOneDrive.Core.ViewModels
+namespace FlickrToCloud.Core.ViewModels
 {
     public class SessionsViewModel : MvxViewModel<List<Session>>
     {
