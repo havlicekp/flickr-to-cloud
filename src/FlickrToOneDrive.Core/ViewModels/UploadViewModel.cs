@@ -3,18 +3,19 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using FlickrToOneDrive.Contracts;
-using FlickrToOneDrive.Contracts.Exceptions;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts.Models;
-using FlickrToOneDrive.Contracts.Progress;
-using FlickrToOneDrive.Core.Extensions;
+using FlickrToCloud.Contracts;
+using FlickrToCloud.Contracts.Exceptions;
+using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Models;
+using FlickrToCloud.Contracts.Progress;
+using FlickrToCloud.Core.Extensions;
+using FlickrToCloud.Core.PresentationHints;
 using MvvmCross.Commands;
 using MvvmCross.Navigation;
 using MvvmCross.ViewModels;
 using Serilog;
 
-namespace FlickrToOneDrive.Core.ViewModels
+namespace FlickrToCloud.Core.ViewModels
 {
     public class UploadViewModel : MvxViewModel<Setup>
     {
@@ -43,6 +44,7 @@ namespace FlickrToOneDrive.Core.ViewModels
         private bool _pausing;
         private bool _cancelling;
         private bool _stopping;
+        private bool _sourceIsEmpty;
 
         public UploadViewModel(IMvxNavigationService navigationService, ICloudCopyService copyService, IDialogService dialogService, ILogger log)
         {
@@ -73,8 +75,6 @@ namespace FlickrToOneDrive.Core.ViewModels
         {
             _setup = setup;
 
-            _copyService.NothingToUploadHandler += () => StatusMessage = $"No files found on {_setup.Source.Name}";
-            
             _copyService.ReadingFilesStartingHandler += () =>
             {
                 HeadingMessage = "Reading Source";
@@ -104,7 +104,7 @@ namespace FlickrToOneDrive.Core.ViewModels
             {
                 // Folders get created beforehand during remote upload
                 HeadingMessage = "Creating folders";
-                StatusMessage = $"Creating folder structure on {_setup.Source.Name}. Please wait";
+                StatusMessage = $"Creating folder structure on {_setup.Destination.Name}. Please wait";
             };
 
             _copyService.UploadStartingHandler += (progress) =>
@@ -114,14 +114,17 @@ namespace FlickrToOneDrive.Core.ViewModels
                 SetInitialMessages();
                 UpdateProgressCounts(progress);
                 ProgressIndicatorNeeded = true;
-                ItemName = "photo(s) uploaded";
                 if (_setup.Session.Mode == SessionMode.Remote)
                 {
-                    StatusMessage = $"{_setup.Source.Name} is being instructed to download files from {_setup.Destination.Name}. Plese wait until the process finishes";
+                    HeadingMessage = "Queuing files for download";
+                    StatusMessage = $"{_setup.Destination.Name} is being instructed to download files from {_setup.Source.Name}. Please wait until the process finishes";
+                    ItemName = "photo(s) queued";
                 }
                 else
                 {
-                    StatusMessage = $"Photos from Flickr are being downloaded and uploaded to {_setup.Destination.Name}. Plese wait until the process finishes";
+                    HeadingMessage = "Processing files";
+                    StatusMessage = $"Photos from {_setup.Source.Name} are being downloaded and uploaded to {_setup.Destination.Name}. Please wait until the process finishes";
+                    ItemName = "photo(s) uploaded";
                 }
             };
 
@@ -133,25 +136,27 @@ namespace FlickrToOneDrive.Core.ViewModels
 
             _copyService.UploadFinishedHandler += (progress) =>
             {
-                if (progress.ProcessedWithError > 0)
+                var errorsOccured = _setup.Session.GetFiles(FileState.Failed).Any();
+                if (errorsOccured)
                 {
                     HeadingMessage = "Finished with errors";
                     StatusMessage = $"Some files were not uploaded to {_setup.Destination.Name}. Click Retry to try again or Show Files to see error details for the failed files";
                     LocalUploadFinishedWithErrors = true;
                 }
-
-                if (_setup.Session.Mode == SessionMode.Remote)
-                {
-                    StatusMessage = $"The upload runs in background now. Use Check Status button or re-open the app to see how many files were already uploaded";
-                }
-
                 /*else
                 {
-                    await CheckStatus();
-                    /*_navigationService.Navigate<>
-                    HeadingMessage = "Finished!";
-                    StatusMessage = $"{_setup.Source.Name} now contains files copied from {_setup.Destination.Name}. Thank you for using Flickr To Cloud";
-                    LocalUploadFinishedWithSuccess = true;
+                    // Actually, this branch won't be used, since after an successful upload, the app will switch to status check
+                    if (_setup.Session.Mode == SessionMode.Remote)
+                    {
+                        HeadingMessage = "Done, files queued";
+                        StatusMessage = $"The upload runs in background now. Use Check Status button or re-open the app to see how many files were already uploaded";
+                    }
+                    else
+                    {
+                        HeadingMessage = "Finished!";
+                        StatusMessage = $"{_setup.Destination.Name} now contains files copied from {_setup.Source.Name}. Thank you for using Flickr To Cloud";
+                        LocalUploadFinishedWithSuccess = true;
+                    }
                 }*/
             };
 
@@ -162,18 +167,21 @@ namespace FlickrToOneDrive.Core.ViewModels
         public override async void ViewAppeared()
         {
             base.ViewAppeared();
-            var failedFiles = _setup.Session.GetFiles(FileState.Failed);
+
+            // Discard back stack - it shouldn't be possible to go back after
+            // upload settings are confirmed
+            await _navigationService.ChangePresentation(new ClearBackStackHint());
+
+            /*var failedFiles = _setup.Session.GetFiles(FileState.Failed);
             if (failedFiles.Any())
             {
-                var result = await _dialogService.ShowDialog("Question", "There are files which failed to upload last time. Do you want to retry them?", "Yes", "No");
-                if (result == DialogResult.Primary)
-                {
-                    await StartUpload(true);
-                    return;
-                }
+                await _dialogService.ShowDialog("Information", "There are files which failed to upload last time. These will be processed again");
+                await StartUpload(true);
             }
-
-            await StartUpload();
+            else*/
+            {
+                await StartUpload();
+            }
         }
 
         #region Properties
@@ -190,11 +198,21 @@ namespace FlickrToOneDrive.Core.ViewModels
 
         public string ItemName
         {
-            get { return _itemName; }
+            get => _itemName;
             set
             {
                 _itemName = value;
                 RaisePropertyChanged(() => ItemName);
+            }
+        }
+
+        public bool SourceIsEmpty
+        {
+            get => _sourceIsEmpty;
+            set
+            {
+                _sourceIsEmpty = value;
+                RaisePropertyChanged(() => SourceIsEmpty);
             }
         }
 
@@ -380,6 +398,15 @@ namespace FlickrToOneDrive.Core.ViewModels
 
         private async Task CheckStatus()
         {
+            // Remove upload from back stack. If status check follows, it shouldn't
+            // be possible to go back to upload from there.
+            // For SessionMode.Local there is no status check => leave back track
+            // to allow coming back from "View Files"
+            if (_setup.Session.Mode == SessionMode.Remote)
+            {
+                await _navigationService.ChangePresentation(new PopBackStackHint());
+            }
+
             await _navigationService.Navigate<StatusViewModel, Setup>(_setup);
         }
 
@@ -400,6 +427,13 @@ namespace FlickrToOneDrive.Core.ViewModels
 
         private async Task NewSession()
         {
+            // Remove upload from back stack. It shouldn't
+            // be possible to go back to upload from here.
+            if (_setup.Session.Mode == SessionMode.Remote)
+            {
+                await _navigationService.ChangePresentation(new PopBackStackHint());
+            }
+
             await _navigationService.Navigate<LoginViewModel, Setup>(new Setup());
         }
 
@@ -438,17 +472,21 @@ namespace FlickrToOneDrive.Core.ViewModels
             try
             {
                 InProgress = true;
-                Paused = HasError = false;
+                Paused = Pausing = HasError = SourceIsEmpty = false;
 
                 var result = await _copyService.Copy(_setup, retryFailed, _cancellationTokenSource.Token);
                 if (result)
                 {
-                    await _navigationService.Navigate<StatusViewModel, Setup>(_setup);
+                    await CheckStatus();
                 }
             }
             catch (OperationCanceledException)
             {
                 HandleCancellation();
+            }
+            catch (NothingToUploadException)
+            {
+                HandleNothingToUpload();
             }
             catch (Exception e)
             {
@@ -463,6 +501,13 @@ namespace FlickrToOneDrive.Core.ViewModels
                     _cancellationTokenSource.Dispose();
                 }
             }            
+        }
+
+        private void HandleNothingToUpload()
+        {
+            HeadingMessage = "Nothing to upload";
+            StatusMessage = $"There are no albums/files on {_setup.Source.Name}. Click Retry to give it another chance or New Session to start over";
+            SourceIsEmpty = true;
         }
 
         private void HandleError(Exception e)
@@ -485,25 +530,10 @@ namespace FlickrToOneDrive.Core.ViewModels
             HasError = true;
         }
 
-        private void UpdateProgressCounts(ProgressBase progress)
-        {
-            ProcessedItems = progress.ProcessedItems;
-            TotalItems = progress.TotalItems;
-        }
-
-        private void SetInitialMessages()
-        {
-            if (_setup.Session.Mode == SessionMode.Local)
-            {
-                HeadingMessage = "Uploading files";
-                StatusMessage = "Please wait until all files get uploaded. Closing the app will pause the upload. It will be resumed after the app is reopened. " +
-                    "Click Cancel to cancel the upload";
-            }
-        }
-
         private void HandleCancellation()
         {
             Stopping = false;
+
             if (_paused)
             {
                 Pausing = false;
@@ -517,6 +547,22 @@ namespace FlickrToOneDrive.Core.ViewModels
                 Cancelled = true;
                 HeadingMessage = "Cancelled!";
                 StatusMessage = $"The current session was cancelled. Any files already uploaded to {_setup.Destination.Name} need to be cleared manually. Click New Session to start a new session";
+            }
+        }
+
+        private void UpdateProgressCounts(ProgressBase progress)
+        {
+            ProcessedItems = progress.ProcessedItems;
+            TotalItems = progress.TotalItems;
+        }
+
+        private void SetInitialMessages()
+        {
+            if (_setup.Session.Mode == SessionMode.Local)
+            {
+                HeadingMessage = "Uploading files";
+                StatusMessage = "Please wait until all files get uploaded. Closing the app will pause the upload. It will be resumed after the app is reopened. " +
+                    "Click Cancel to cancel the upload";
             }
         }
     }
