@@ -1,8 +1,7 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Threading.Tasks;
 
-namespace FlickrToOneDrive.Contracts.Interfaces
+namespace FlickrToCloud.Contracts.Interfaces
 {
     public interface IStorageService
     {

@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using FlickrToOneDrive.Contracts.Models;
-using FlickrToOneDrive.Contracts.Progress;
+using FlickrToCloud.Contracts.Models;
+using FlickrToCloud.Contracts.Progress;
 
-namespace FlickrToOneDrive.Contracts.Interfaces
+namespace FlickrToCloud.Contracts.Interfaces
 {
     public interface ICloudFileSystem : IAuthenticationCallback
     {

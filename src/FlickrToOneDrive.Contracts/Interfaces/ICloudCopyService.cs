@@ -1,9 +1,9 @@
-﻿using FlickrToOneDrive.Contracts.Progress;
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using FlickrToCloud.Contracts.Progress;
 
-namespace FlickrToOneDrive.Contracts.Interfaces
+namespace FlickrToCloud.Contracts.Interfaces
 {
     public interface ICloudCopyService
     {
@@ -13,7 +13,6 @@ namespace FlickrToOneDrive.Contracts.Interfaces
         event Action ReadingFilesStartingHandler;
         event Action<ReadingFilesProgress> ReadingFilesProgressHandler;
         event Action CreatingFoldersHandler;
-        event Action NothingToUploadHandler;
         event Action<StatusCheckProgress> CheckingStatusHandler;
         event Action<StatusCheckProgress> CheckingStatusFinishedHandler;
         Task<bool> Copy(Setup setup, bool retryFailed, CancellationToken ct);

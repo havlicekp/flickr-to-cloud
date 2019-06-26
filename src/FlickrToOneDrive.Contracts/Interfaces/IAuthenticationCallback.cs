@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace FlickrToOneDrive.Contracts.Interfaces
+namespace FlickrToCloud.Contracts.Interfaces
 {
     public interface IAuthenticationCallback
     {

@@ -1,4 +1,4 @@
-﻿namespace FlickrToOneDrive.Contracts.Interfaces
+﻿namespace FlickrToCloud.Contracts.Interfaces
 {
     public enum DialogResult
     {

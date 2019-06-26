@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace FlickrToOneDrive.Contracts.Interfaces
+﻿namespace FlickrToCloud.Contracts.Interfaces
 {
     public interface IConfiguration
     {
