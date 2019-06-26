@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using FlickrToOneDrive.Contracts;
-using FlickrToOneDrive.Contracts.Exceptions;
-using FlickrToOneDrive.Contracts.Models;
+using FlickrToCloud.Contracts;
+using FlickrToCloud.Contracts.Exceptions;
+using FlickrToCloud.Contracts.Models;
 
-namespace FlickrToOneDrive.Core.Extensions
+namespace FlickrToCloud.Core.Extensions
 {
     public static class SessionExtensions
     {
@@ -47,5 +47,18 @@ namespace FlickrToOneDrive.Core.Extensions
             }
         }
 
+        public static void UpdateDestinationFolder(this Session session, string destinationFolder)
+        {
+            using (var db = new CloudCopyContext())
+            {
+                var dbSession = db.Sessions.FirstOrDefault(s => s.Id == session.Id);
+                if (dbSession == null)
+                    throw new CloudCopyException("Session does not exist");
+
+                dbSession.DestinationFolder = destinationFolder;
+                session.DestinationFolder = destinationFolder;
+                db.SaveChanges();
+            }
+        }
     }
 }

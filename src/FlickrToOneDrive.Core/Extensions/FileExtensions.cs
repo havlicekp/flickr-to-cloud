@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Linq;
-using FlickrToOneDrive.Contracts;
-using FlickrToOneDrive.Contracts.Models;
+using FlickrToCloud.Contracts;
+using FlickrToCloud.Contracts.Models;
 
-namespace FlickrToOneDrive.Core.Extensions
+namespace FlickrToCloud.Core.Extensions
 {
     public static class FileExtensions
     {
@@ -31,10 +31,13 @@ namespace FlickrToOneDrive.Core.Extensions
         {
             using (var db = new CloudCopyContext())
             {
-                var dbFile = db.Files.First(f => f.Id == file.Id);
-                dbFile.MonitorUrl = file.MonitorUrl = monitorUrl;
-                dbFile.State = file.State = FileState.InProgress;
-                db.SaveChanges();
+                var dbFile = db.Files.FirstOrDefault(f => f.Id == file.Id);
+                if (dbFile != null)
+                {
+                    dbFile.MonitorUrl = file.MonitorUrl = monitorUrl;
+                    dbFile.State = file.State = FileState.InProgress;
+                    db.SaveChanges();
+                }
             }
         }
 
