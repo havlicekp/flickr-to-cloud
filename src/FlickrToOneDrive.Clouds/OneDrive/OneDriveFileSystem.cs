@@ -1,26 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
+using FlickrToCloud.Contracts.Exceptions;
+using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Models;
+using FlickrToCloud.Contracts.Progress;
+using Microsoft.Graph;
 using Newtonsoft.Json.Linq;
 using Open.OAuth2;
 using Open.OneDrive;
-using System.Web;
 using Serilog;
-using Microsoft.Graph;
-using FlickrToOneDrive.Contracts.Exceptions;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts.Models;
-using File = FlickrToOneDrive.Contracts.Models.File;
-using OperationStatus = FlickrToOneDrive.Contracts.Models.OperationStatus;
-using System.Threading;
-using FlickrToOneDrive.Contracts.Progress;
-using System.IO;
+using File = FlickrToCloud.Contracts.Models.File;
+using OperationStatus = FlickrToCloud.Contracts.Models.OperationStatus;
 
-namespace FlickrToOneDrive.Clouds.OneDrive
+namespace FlickrToCloud.Clouds.OneDrive
 {
     public class OneDriveFileSystem : ICloudFileSystem
     {

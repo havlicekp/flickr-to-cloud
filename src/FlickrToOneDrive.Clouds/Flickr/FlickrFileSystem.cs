@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using FlickrToOneDrive.Contracts.Exceptions;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts.Models;
-using FlickrToOneDrive.Contracts.Progress;
+using FlickrToCloud.Contracts.Exceptions;
+using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Models;
+using FlickrToCloud.Contracts.Progress;
 using Serilog;
-using File = FlickrToOneDrive.Contracts.Models.File;
+using File = FlickrToCloud.Contracts.Models.File;
 
-namespace FlickrToOneDrive.Clouds.Flickr
+namespace FlickrToCloud.Clouds.Flickr
 {
     public class FlickrFileSystem : ICloudFileSystem
     {

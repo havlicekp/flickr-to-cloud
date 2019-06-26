@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using FlickrToOneDrive.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Interfaces;
 using Newtonsoft.Json.Linq;
 using Open.OAuth;
 using Serilog;
 
-namespace FlickrToOneDrive.Clouds.Flickr
+namespace FlickrToCloud.Clouds.Flickr
 {
     public class FlickrClient : IFlickrClient
     {

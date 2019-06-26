@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace FlickrToOneDrive.Clouds.Flickr
+namespace FlickrToCloud.Clouds.Flickr
 {
     public class FlickrParams : Dictionary<string, string>
     {

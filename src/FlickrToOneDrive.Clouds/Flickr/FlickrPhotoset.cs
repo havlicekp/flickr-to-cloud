@@ -1,4 +1,4 @@
-﻿namespace FlickrToOneDrive.Clouds.Flickr
+﻿namespace FlickrToCloud.Clouds.Flickr
 {
     public class FlickrPhotoset
     {

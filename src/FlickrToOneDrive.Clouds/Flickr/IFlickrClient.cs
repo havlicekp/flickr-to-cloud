@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FlickrToOneDrive.Clouds.Flickr
+namespace FlickrToCloud.Clouds.Flickr
 {
     public interface IFlickrClient
     {

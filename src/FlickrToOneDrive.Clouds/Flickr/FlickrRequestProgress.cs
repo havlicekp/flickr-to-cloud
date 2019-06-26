@@ -1,6 +1,6 @@
-﻿using FlickrToOneDrive.Contracts.Progress;
+﻿using FlickrToCloud.Contracts.Progress;
 
-namespace FlickrToOneDrive.Clouds.Flickr
+namespace FlickrToCloud.Clouds.Flickr
 {
     public class FlickrRequestProgress : ProgressBase
     {
