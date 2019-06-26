@@ -1,14 +1,14 @@
-﻿using FlickrToOneDrive.Contracts;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts.Models;
+﻿using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using FlickrToCloud.Contracts;
+using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Models;
 using MvvmCross.Commands;
 using MvvmCross.Navigation;
 using MvvmCross.ViewModels;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Input;
 
-namespace FlickrToOneDrive.Core.ViewModels
+namespace FlickrToCloud.Core.ViewModels
 {
     public class SettingsViewModel : MvxViewModel<Setup>
     {
@@ -20,11 +20,11 @@ namespace FlickrToOneDrive.Core.ViewModels
         private readonly IMvxNavigationService _navigationService;
         private readonly IDialogService _dialogService;
 
-        public ICommand ContinueSetupCommand { get; }
+        public ICommand ContinueCommand { get; }
 
         public SettingsViewModel(IMvxNavigationService navigationService, IDialogService dialogService)
         {
-            ContinueSetupCommand = new MvxAsyncCommand(ContinueSetup);
+            ContinueCommand = new MvxAsyncCommand(ContinueSetup);
             _navigationService = navigationService;
             _dialogService = dialogService;
         }
@@ -32,11 +32,17 @@ namespace FlickrToOneDrive.Core.ViewModels
         public override void Prepare(Setup setup)
         {
             _setup = setup;
+
+            SessionModeLocal = _setup.Session.Mode == SessionMode.Local;
+            SessionModeRemote = _setup.Session.Mode == SessionMode.Remote;
+            FilesOriginFolders = _setup.Session.FilesOrigin.HasFlag(SessionFilesOrigin.Structured);
+            FilesOriginFlat = _setup.Session.FilesOrigin.HasFlag(SessionFilesOrigin.Flat);
+
         }
 
         public bool SessionModeRemote
         {
-            get { return _sessionModeRemote; }
+            get => _sessionModeRemote;
             set
             {
                 _sessionModeRemote = value;
@@ -46,7 +52,7 @@ namespace FlickrToOneDrive.Core.ViewModels
 
         public bool SessionModeLocal
         {
-            get { return _sessionModeLocal; }
+            get => _sessionModeLocal;
             set
             {
                 _sessionModeLocal = value;
@@ -56,7 +62,7 @@ namespace FlickrToOneDrive.Core.ViewModels
 
         public bool FilesOriginFolders
         {
-            get { return _filesOriginFolders; }
+            get => _filesOriginFolders;
             set
             {
                 _filesOriginFolders = value;
@@ -66,7 +72,7 @@ namespace FlickrToOneDrive.Core.ViewModels
 
         public bool FilesOriginFlat
         {
-            get { return _filesOriginFlat; }
+            get => _filesOriginFlat;
             set
             {
                 _filesOriginFlat = value;
