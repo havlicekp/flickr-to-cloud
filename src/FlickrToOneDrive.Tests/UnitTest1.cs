@@ -1,7 +1,6 @@
-using System;
 using Xunit;
 
-namespace FlickrToOneDrive.Tests
+namespace FlickrToCloud.Tests
 {
     public class UnitTest1
     {

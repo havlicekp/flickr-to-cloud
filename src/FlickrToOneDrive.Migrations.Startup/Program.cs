@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FlickrToOneDrive.Migrations.Startup
+namespace FlickrToCloud.Migrations.Startup
 {
     class Program
     {
