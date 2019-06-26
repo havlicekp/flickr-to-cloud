@@ -1,7 +1,6 @@
 ﻿<flickrToCloud:Application x:Class="FlickrToCloud.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:FlickrToOneDrive"
     xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
     xmlns:core="using:Microsoft.Xaml.Interactions.Core"
     xmlns:flickrToCloud="using:FlickrToCloud">

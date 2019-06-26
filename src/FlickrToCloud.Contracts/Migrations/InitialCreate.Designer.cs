@@ -17,7 +17,7 @@ namespace FlickrToCloud.Contracts.Migrations
             modelBuilder
                 .HasAnnotation("ProductVersion", "2.2.3-servicing-35854");
 
-            modelBuilder.Entity("FlickrToOneDrive.Contracts.Models.File", b =>
+            modelBuilder.Entity("FlickrToCloud.Contracts.Models.File", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd();
@@ -45,7 +45,7 @@ namespace FlickrToCloud.Contracts.Migrations
                     b.ToTable("Files");
                 });
 
-            modelBuilder.Entity("FlickrToOneDrive.Contracts.Models.Session", b =>
+            modelBuilder.Entity("FlickrToCloud.Contracts.Models.Session", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd();
@@ -69,9 +69,9 @@ namespace FlickrToCloud.Contracts.Migrations
                     b.ToTable("Sessions");
                 });
 
-            modelBuilder.Entity("FlickrToOneDrive.Contracts.Models.File", b =>
+            modelBuilder.Entity("FlickrToCloud.Contracts.Models.File", b =>
                 {
-                    b.HasOne("FlickrToOneDrive.Contracts.Models.Session", "Session")
+                    b.HasOne("FlickrToCloud.Contracts.Models.Session", "Session")
                         .WithMany("Files")
                         .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Cascade);

@@ -20,7 +20,7 @@ namespace FlickrToCloud
         protected override IMvxLogProvider CreateLogProvider()
         {
             const string fileOutputTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] [{SourceContext}] <{ThreadId}> {Message}{NewLine}{Exception}";
-            var logPath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "Logs", "FlickrToOneDrive-{Date}.log");
+            var logPath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "Logs", "FlickrToCloud-{Date}.log");
 
             var logConfiguration = new LoggerConfiguration()
                 .MinimumLevel.Verbose()

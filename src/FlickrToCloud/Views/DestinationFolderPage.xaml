@@ -2,7 +2,6 @@
     x:Class="FlickrToCloud.Views.DestinationFolderPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:FlickrToOneDrive.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:MvvmCross.Platforms.Uap.Views"
@@ -10,7 +9,7 @@
     xmlns:core="using:Microsoft.Xaml.Interactions.Core"
     xmlns:converters="using:Microsoft.Toolkit.Uwp.UI.Converters"
     xmlns:system="using:System"
-    xmlns:views1="using:FlickrToCloud.Views"
+    xmlns:local="using:FlickrToCloud.Views"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
     <Page.Resources>
@@ -28,7 +27,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
-            <views1:Header />
+            <local:Header />
             <StackPanel Margin="40 0 40 20">
                 <TextBlock Style="{StaticResource Heading}">Destination</TextBlock>
                 <TextBlock Style="{StaticResource Message}">
@@ -89,6 +88,6 @@
                 IsEnabled="{Binding LoadingFolders, Converter={StaticResource BoolNegationConverter}}" 
                 ContentTemplate="{StaticResource ContinueButtonTemplate}" />
         </StackPanel>
-        <views1:Footer Grid.Row="4"/>
+        <local:Footer Grid.Row="4"/>
     </Grid>
 </views:MvxWindowsPage>

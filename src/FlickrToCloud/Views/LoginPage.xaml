@@ -4,9 +4,8 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:MvvmCross.Platforms.Uap.Views"
-    xmlns:local="using:FlickrToOneDrive.Views"
     xmlns:toolkitConverters="using:Microsoft.Toolkit.Uwp.UI.Converters"
-    xmlns:views1="using:FlickrToCloud.Views"
+    xmlns:local="using:FlickrToCloud.Views"
     mc:Ignorable="d"    
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     >
@@ -21,7 +20,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
-            <views1:Header />
+            <local:Header />
             <StackPanel Margin="40 0 40 0">
                 <StackPanel>
                     <TextBlock Style="{StaticResource Heading}" Visibility="{Binding NewSession}">New Session</TextBlock>
@@ -64,6 +63,6 @@
                 <Button HorizontalAlignment="Right" Command="{Binding ContinueCommand}" IsEnabled="{Binding CanContinue}" Width="110" Margin="0 30 0 0" ContentTemplate="{StaticResource ContinueButtonTemplate}" />
             </StackPanel>
         </StackPanel>
-        <views1:Footer Grid.Row="1"/>
+        <local:Footer Grid.Row="1"/>
     </Grid>
 </views:MvxWindowsPage>

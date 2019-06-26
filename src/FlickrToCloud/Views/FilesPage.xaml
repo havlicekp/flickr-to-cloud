@@ -5,10 +5,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:MvvmCross.Platforms.Uap.Views"
     xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
-    xmlns:local="using:FlickrToOneDrive.Views"
     xmlns:toolkitConverters="using:Microsoft.Toolkit.Uwp.UI.Converters"
     xmlns:converters="using:FlickrToCloud.Converters"
-    xmlns:views1="using:FlickrToCloud.Views"
+    xmlns:local="using:FlickrToCloud.Views"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     >
@@ -26,7 +25,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
-            <views1:Header />
+            <local:Header />
             <StackPanel Margin="40 0 40 0">
                 <TextBlock Style="{StaticResource Heading}">Session Details</TextBlock>
                 <TextBlock HorizontalTextAlignment="Left" LineStackingStrategy="BlockLineHeight" LineHeight="30" Style="{StaticResource Message}">
@@ -88,6 +87,6 @@
                     </DataTemplate>
                 </controls:DataGrid.RowDetailsTemplate>
             </controls:DataGrid>
-        <views1:Footer Grid.Row="2" />
+        <local:Footer Grid.Row="2" />
     </Grid>
 </views:MvxWindowsPage>

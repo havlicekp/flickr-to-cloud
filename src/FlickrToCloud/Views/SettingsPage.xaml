@@ -6,9 +6,8 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:toolkitConverters="using:Microsoft.Toolkit.Uwp.UI.Converters"
-    xmlns:local="using:FlickrToOneDrive.Views"
     xmlns:converters="using:FlickrToCloud.Converters"
-    xmlns:views1="using:FlickrToCloud.Views"
+    xmlns:local="using:FlickrToCloud.Views"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     >
@@ -22,7 +21,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
-            <views1:Header />
+            <local:Header />
             <StackPanel>
                 <StackPanel Margin="40 0 40 0">
                     <TextBlock Style="{StaticResource Heading}">Copy mode</TextBlock>
@@ -82,6 +81,6 @@
                 </StackPanel>
             </StackPanel>
         </StackPanel>
-        <views1:Footer Grid.Row="1"/>
+        <local:Footer Grid.Row="1"/>
     </Grid>
 </views:MvxWindowsPage>
