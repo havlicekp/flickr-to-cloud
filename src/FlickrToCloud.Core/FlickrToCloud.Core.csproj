@@ -15,8 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FlickrToOneDrive.Clouds\FlickrToCloud.Clouds.csproj" />
-    <ProjectReference Include="..\FlickrToOneDrive.Contracts\FlickrToCloud.Contracts.csproj" />
+    <ProjectReference Include="..\FlickrToCloud.Clouds\FlickrToCloud.Clouds.csproj" />
+    <ProjectReference Include="..\FlickrToCloud.Contracts\FlickrToCloud.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

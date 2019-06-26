@@ -247,11 +247,11 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\FlickrToOneDrive.Contracts\FlickrToCloud.Contracts.csproj">
+    <ProjectReference Include="..\FlickrToCloud.Contracts\FlickrToCloud.Contracts.csproj">
       <Project>{c9c25c6f-7619-4dc4-b990-78e7a8d232a7}</Project>
       <Name>FlickrToCloud.Contracts</Name>
     </ProjectReference>
-    <ProjectReference Include="..\FlickrToOneDrive.Core\FlickrToCloud.Core.csproj">
+    <ProjectReference Include="..\FlickrToCloud.Core\FlickrToCloud.Core.csproj">
       <Project>{ad3e0c26-208f-4c97-8861-d40d9c9b638f}</Project>
       <Name>FlickrToCloud.Core</Name>
     </ProjectReference>
