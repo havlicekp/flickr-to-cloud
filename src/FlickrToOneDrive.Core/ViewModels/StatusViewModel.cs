@@ -2,18 +2,19 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using FlickrToOneDrive.Contracts;
-using FlickrToOneDrive.Contracts.Exceptions;
-using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts.Models;
-using FlickrToOneDrive.Contracts.Progress;
-using FlickrToOneDrive.Core.Extensions;
+using FlickrToCloud.Contracts;
+using FlickrToCloud.Contracts.Exceptions;
+using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Models;
+using FlickrToCloud.Contracts.Progress;
+using FlickrToCloud.Core.Extensions;
+using FlickrToCloud.Core.PresentationHints;
 using MvvmCross.Commands;
 using MvvmCross.Navigation;
 using MvvmCross.ViewModels;
 using Serilog;
 
-namespace FlickrToOneDrive.Core.ViewModels
+namespace FlickrToCloud.Core.ViewModels
 {
     public class StatusViewModel : MvxViewModel<Setup>
     {
@@ -81,6 +82,10 @@ namespace FlickrToOneDrive.Core.ViewModels
         public override async void ViewAppeared()
         {
             base.ViewAppeared();
+
+            // Clear back stack => it shouldn't be possible to return from status check
+            await _navigationService.ChangePresentation(new ClearBackStackHint());
+
             await CheckStatus();
         }
 
@@ -247,6 +252,7 @@ namespace FlickrToOneDrive.Core.ViewModels
                 var finishedFilesCount = _setup.Session.GetFiles(FileState.Finished).Count;
                 var failedFilesCount = _setup.Session.GetFiles(FileState.Failed).Count;
                 UpdateStatus(finishedFilesCount, failedFilesCount, 0, 100);
+                CheckingFinishedWithSuccess = true;
             }
         }
 
@@ -353,6 +359,11 @@ namespace FlickrToOneDrive.Core.ViewModels
                 HeadingMessage = "Finished!";
                 StatusMessage = "The session is finished now. Thank you for using Flickr To Cloud";
                 IsSessionFinished = true;
+            }
+            else
+            {
+                HeadingMessage = "We're not there yet";
+                StatusMessage = "The session is in progress, files are being transferred in the background. Check status again or close the app and try later";
             }
         }
     }
