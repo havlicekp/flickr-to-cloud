@@ -1,17 +1,15 @@
 ﻿using System;
 using Windows.UI.Xaml.Data;
+using FlickrToCloud.Contracts.Models;
 
 namespace FlickrToCloud.Converters
 {
-    public class DateTimeConverter : IValueConverter
+    public class SessionModeToStringConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            if (value == null)
-                return null;
-
-            DateTime dt = DateTime.Parse(value.ToString());
-            return dt.ToString((string)parameter);
+            var mode = (SessionMode?) value;
+            return value?.ToString();
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)

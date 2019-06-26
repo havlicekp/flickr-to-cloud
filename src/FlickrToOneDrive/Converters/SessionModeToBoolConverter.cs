@@ -1,8 +1,8 @@
-﻿using FlickrToOneDrive.Contracts.Models;
-using System;
+﻿using System;
 using Windows.UI.Xaml.Data;
+using FlickrToCloud.Contracts.Models;
 
-namespace FlickrToOneDrive.Converters
+namespace FlickrToCloud.Converters
 {
     public class SessionModeToBoolConverter : IValueConverter
     {

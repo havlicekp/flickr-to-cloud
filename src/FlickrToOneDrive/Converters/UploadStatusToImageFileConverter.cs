@@ -1,9 +1,9 @@
 ﻿using System;
 using Windows.UI.Xaml.Data;
-using FlickrToOneDrive.Contracts.Exceptions;
-using FlickrToOneDrive.Contracts.Models;
+using FlickrToCloud.Contracts.Exceptions;
+using FlickrToCloud.Contracts.Models;
 
-namespace FlickrToOneDrive.Converters
+namespace FlickrToCloud.Converters
 {
     public class UploadStatusToImageFileConverter : IValueConverter
     {
