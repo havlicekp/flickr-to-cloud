@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using FlickrToOneDrive.Contracts.Interfaces;
 using Windows.Storage;
 using Windows.Storage.Search;
+using FlickrToCloud.Contracts.Interfaces;
 
-namespace FlickrToOneDrive
+namespace FlickrToCloud
 {
     public class StorageService : IStorageService
     {

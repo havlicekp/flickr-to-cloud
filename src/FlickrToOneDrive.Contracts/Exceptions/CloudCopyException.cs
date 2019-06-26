@@ -1,8 +1,8 @@
-﻿using Serilog;
-using System;
+﻿using System;
 using System.Runtime.Serialization;
+using Serilog;
 
-namespace FlickrToOneDrive.Contracts.Exceptions
+namespace FlickrToCloud.Contracts.Exceptions
 {
     public class CloudCopyException : ApplicationException
     {

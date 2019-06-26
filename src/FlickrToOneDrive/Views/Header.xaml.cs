@@ -1,6 +1,6 @@
 ﻿using Windows.UI.Xaml.Controls;
 
-namespace FlickrToOneDrive.Views
+namespace FlickrToCloud.Views
 {
     public sealed partial class Header : UserControl
     {

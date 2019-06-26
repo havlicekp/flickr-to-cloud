@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Windows.Storage;
-using FlickrToOneDrive.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Interfaces;
 using Newtonsoft.Json.Linq;
 using Serilog;
 
-namespace FlickrToOneDrive
+namespace FlickrToCloud
 {
     public class Configuration : IConfiguration
     {

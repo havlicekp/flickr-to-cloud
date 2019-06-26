@@ -1,7 +1,6 @@
-﻿using System.Net.Http;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
-namespace FlickrToOneDrive.Contracts
+namespace FlickrToCloud.Contracts
 {
     public delegate Task<(bool Result, string Error)> ValidationCallback<in T>(T input);
 }

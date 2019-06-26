@@ -1,7 +1,7 @@
-﻿using FlickrToOneDrive.Contracts.Interfaces;
-using FlickrToOneDrive.Contracts.Models;
+﻿using FlickrToCloud.Contracts.Interfaces;
+using FlickrToCloud.Contracts.Models;
 
-namespace FlickrToOneDrive.Contracts
+namespace FlickrToCloud.Contracts
 {
     public class Setup
     {

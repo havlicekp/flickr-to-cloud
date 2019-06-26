@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("FlickrToOneDrive")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Flickr To Cloud")]
+[assembly: AssemblyDescription("Backup Flickr photos and albums to cloud")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("FlickrToOneDrive")]
-[assembly: AssemblyCopyright("Copyright ©  2019")]
+[assembly: AssemblyProduct("Flickr To Cloud")]
+[assembly: AssemblyCopyright("Copyright © Petr Havlicek 2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

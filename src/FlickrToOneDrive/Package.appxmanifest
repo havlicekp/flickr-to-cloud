@@ -14,8 +14,8 @@
   <mp:PhoneIdentity PhoneProductId="7f261b07-e33d-4e81-8ea3-40341ff95cc5" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>FlickrToOneDrive</DisplayName>
-    <PublisherDisplayName>havli</PublisherDisplayName>
+    <DisplayName>Flickr To Cloud</DisplayName>
+    <PublisherDisplayName>Petr Havlicek</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -30,20 +30,20 @@
   <Applications>
     <Application Id="App"
       Executable="$targetnametoken$.exe"
-      EntryPoint="FlickrToOneDrive.App">
+      EntryPoint="FlickrToCloud.App">
       <uap:VisualElements
-        DisplayName="FlickrToOneDrive"
+        DisplayName="Flickr To Cloud"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png"
-        Description="FlickrToOneDrive"
+        Description="Copy photos from Flickr to cloud"
         BackgroundColor="transparent">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
       <Extensions>
         <uap:Extension Category="windows.protocol">
-          <uap:Protocol Name="cloudcopy">
-            <uap:DisplayName>Cloud Copy</uap:DisplayName>
+          <uap:Protocol Name="flickrtocloud">
+            <uap:DisplayName>Flickr To Cloud</uap:DisplayName>
           </uap:Protocol>
         </uap:Extension>
       </Extensions>

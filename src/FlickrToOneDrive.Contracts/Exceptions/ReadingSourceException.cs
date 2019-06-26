@@ -1,7 +1,7 @@
-﻿using Serilog;
-using System;
+﻿using System;
+using Serilog;
 
-namespace FlickrToOneDrive.Contracts.Exceptions
+namespace FlickrToCloud.Contracts.Exceptions
 {
     public class ReadingSourceException : CloudCopyException
     {
