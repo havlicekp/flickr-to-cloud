@@ -1,4 +1,4 @@
-﻿namespace FlickrToOneDrive.Contracts.Models
+﻿namespace FlickrToCloud.Contracts.Models
 {
     public abstract class BaseEntity
     {

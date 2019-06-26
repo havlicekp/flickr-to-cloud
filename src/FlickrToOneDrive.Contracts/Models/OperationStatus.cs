@@ -1,6 +1,4 @@
-﻿using SQLitePCL;
-
-namespace FlickrToOneDrive.Contracts.Models
+﻿namespace FlickrToCloud.Contracts.Models
 {
     public class OperationStatus
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace FlickrToOneDrive.Contracts.Models
+namespace FlickrToCloud.Contracts.Models
 {
     public class File : BaseEntity
     {

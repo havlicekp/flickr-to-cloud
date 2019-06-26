@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FlickrToOneDrive.Contracts.Models
+namespace FlickrToCloud.Contracts.Models
 {
     [Flags]
     public enum SessionFilesOrigin
