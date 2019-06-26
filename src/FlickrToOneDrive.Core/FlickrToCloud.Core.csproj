@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>FlickrToCloud.Core</AssemblyName>
+    <RootNamespace>FlickrToCloud.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.2.3" />
+    <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform" Version="6.2.3" />
+    <PackageReference Include="Moq" Version="4.10.1" />
+    <PackageReference Include="MvvmCross" Version="6.2.3" />
+    <PackageReference Include="Serilog" Version="2.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlickrToOneDrive.Clouds\FlickrToCloud.Clouds.csproj" />
+    <ProjectReference Include="..\FlickrToOneDrive.Contracts\FlickrToCloud.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
