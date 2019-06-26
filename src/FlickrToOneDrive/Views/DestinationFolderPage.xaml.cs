@@ -1,8 +1,8 @@
-﻿using FlickrToOneDrive.Core.ViewModels;
+﻿using FlickrToCloud.Core.ViewModels;
 using MvvmCross.Platforms.Uap.Views;
 using MvvmCross.ViewModels;
 
-namespace FlickrToOneDrive.Views
+namespace FlickrToCloud.Views
 {
     [MvxViewFor(typeof(DestinationFolderViewModel))]
     public sealed partial class DestinationFolderPage : MvxWindowsPage
