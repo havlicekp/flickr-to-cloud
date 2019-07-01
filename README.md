@@ -1,8 +1,8 @@
 # Flickr To Cloud
 Backup your Flickr albums and photo stream to a cloud storage. If possible, photos are copied directly between Flickr and the cloud, without downloading them locally.
 
-<img src="https://github.com/havlicekp/flickr-to-cloud/blob/master/images/mockup.jpg" alt="alt text"  align="left" >
-  
+[](https://github.com/havlicekp/flickr-to-cloud/blob/master/images/mockup.jpg)
+&nbsp;
 ## Technical details
 * Windows Store application (UWP project + .NET Standard 2.0 assemblies)
 * Utilizing MVVM pattern to separate GUI (XAML) code from business logic ([MVVMCross framework](https://www.mvvmcross.com/))
