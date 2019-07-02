@@ -58,7 +58,10 @@ namespace FlickrToCloud.Core.ViewModels
                             _setup.Session = new Session {
                                 SourceCloud = _setup.Source.Name,
                                 DestinationCloud = _setup.Destination.Name,
-                                Started = DateTime.Now
+                                Started = DateTime.Now,
+                                Mode = SessionMode.Remote, // Default value for Mode
+                                FilesOrigin = SessionFilesOrigin.Structured // Default value for FilesOrigin
+                                     
                             }; 
                             db.Sessions.Add(_setup.Session);
                             db.SaveChanges();
@@ -88,6 +91,7 @@ namespace FlickrToCloud.Core.ViewModels
                     await _navigationService.Navigate<UploadViewModel, Setup>(_setup);
                     break;
                 case SessionState.Checking:
+                    _setup.RequestStatusCheck = true;
                     await _navigationService.Navigate<StatusViewModel, Setup>(_setup);
                     break;
                 default:

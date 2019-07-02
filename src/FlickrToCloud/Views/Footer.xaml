@@ -14,7 +14,7 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <StackPanel Orientation="Horizontal" Grid.Column="1">
-            <HyperlinkButton HorizontalAlignment="Stretch" Margin="0 10 0 20" HorizontalContentAlignment="Center">Learn more</HyperlinkButton>
+            <HyperlinkButton HorizontalAlignment="Stretch" Margin="0 10 0 20" HorizontalContentAlignment="Center" Content="Learn more" NavigateUri="https://github.com/havlicekp/flickr-to-cloud/" />
         </StackPanel>
     </Grid>
 </UserControl>

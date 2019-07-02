@@ -9,7 +9,6 @@
     mc:Ignorable="d"    
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     >
-    <!--Background="{ThemeResource SystemChromeLowColor}"-->
     <Page.Resources>
         <toolkitConverters:BoolNegationConverter x:Key="BoolNegationConverter"/>
     </Page.Resources>
@@ -60,7 +59,8 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
-                <Button HorizontalAlignment="Right" Command="{Binding ContinueCommand}" IsEnabled="{Binding CanContinue}" Width="110" Margin="0 30 0 0" ContentTemplate="{StaticResource ContinueButtonTemplate}" />
+
+                <Button Style="{StaticResource ContinueButtonStyle}" Command="{Binding ContinueCommand}" IsEnabled="{Binding CanContinue}" Margin="0 30 0 0" />
             </StackPanel>
         </StackPanel>
         <local:Footer Grid.Row="1"/>

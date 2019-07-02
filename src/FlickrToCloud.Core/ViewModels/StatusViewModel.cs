@@ -79,14 +79,24 @@ namespace FlickrToCloud.Core.ViewModels
             };
         }
 
-        public override async void ViewAppeared()
+        public override async void ViewAppearing()
         {
-            base.ViewAppeared();
+            base.ViewAppearing();
 
             // Clear back stack => it shouldn't be possible to return from status check
             await _navigationService.ChangePresentation(new ClearBackStackHint());
 
-            await CheckStatus();
+        }
+
+        public override async Task Initialize()
+        {
+            await base.Initialize();
+
+            if (_setup.RequestStatusCheck)
+            {
+                await CheckStatus();
+                _setup.RequestStatusCheck = false;
+            }
         }
 
         #region Properties

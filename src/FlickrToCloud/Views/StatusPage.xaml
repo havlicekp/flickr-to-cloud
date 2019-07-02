@@ -14,7 +14,10 @@
     <Page.Resources>
         <ResourceDictionary>
             <converters:BoolNegationConverter x:Key="BoolNegation" />
-            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <Style TargetType="TextBlock" x:Name="NumberTextBox">
+                <Setter Property="HorizontalTextAlignment" Value="Center" />
+                <Setter Property="FontSize" Value="16" />
+            </Style>
         </ResourceDictionary>
     </Page.Resources>
 
@@ -36,31 +39,30 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto"  />
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Center">
+                <StackPanel Grid.Column="0" HorizontalAlignment="Center">
                     <Image Margin="8" Source="/Assets/UploadStatusFinished.png" Width="24" />
                     <TextBlock>FINISHED</TextBlock>
-                    <TextBlock HorizontalTextAlignment="Center" FontSize="16" Text="{Binding FinishedFilesCount}" />
+                    <TextBlock Text="{Binding FinishedFilesCount}" Style="{StaticResource NumberTextBox}" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center">
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center">
                     <Image Margin="8" Source="/Assets/UploadStatusInProgress.png" Width="24" />
                     <TextBlock>UPLOADING</TextBlock>
-                    <TextBlock HorizontalTextAlignment="Center" FontSize="16" Text="{Binding InProgressFilesCount}" />
+                    <TextBlock Text="{Binding InProgressFilesCount}" Style="{StaticResource NumberTextBox}" />
                 </StackPanel>
-                <StackPanel Grid.Column="2" Orientation="Vertical" HorizontalAlignment="Center">
+                <StackPanel Grid.Column="2" HorizontalAlignment="Center">
                     <Image Margin="8" Source="/Assets/UploadStatusFailed.png" Width="24" />
                     <TextBlock>FAILED</TextBlock>
-                    <TextBlock HorizontalTextAlignment="Center" FontSize="16" Text="{Binding FailedFilesCount}" />
+                    <TextBlock Text="{Binding FailedFilesCount}" Style="{StaticResource NumberTextBox}" />
                 </StackPanel>
             </Grid>
 
             <!--Show radial progress bar during status check -->
             <RelativePanel Margin="0 30 0 0" HorizontalAlignment="Center">
-                <controls:RadialProgressBar x:Name="rdbProgress" Thickness="8" Minimum="0" Maximum="100" Width="200" Height="200" Foreground="#9f86ff" Outline="#1bc98e" Value="{Binding ProgressValue}" />
+                <controls:RadialProgressBar 
+                    x:Name="rdbProgress" 
+                    Style="{StaticResource DefaultProgressBarStyle}" 
+                    Maximum="100" 
+                    Value="{Binding ProgressValue}" />
                 <StackPanel RelativePanel.AlignHorizontalCenterWith="rdbProgress" 
                         RelativePanel.AlignVerticalCenterWith="rdbProgress">
                     <TextBlock HorizontalTextAlignment="Center" FontSize="32" Text="{Binding ProgressHeading}" />
@@ -69,7 +71,7 @@
             </RelativePanel>
 
             <!--Show Check Status to start checking again and View Files to view file details-->
-            <StackPanel Grid.ColumnSpan="3" Grid.Row="2" Margin="0 40 0 0" Orientation="Horizontal" HorizontalAlignment="Center" Visibility="{Binding CheckingFinishedWithSuccess}">
+            <StackPanel Margin="0 40 0 0" Orientation="Horizontal" HorizontalAlignment="Center" Visibility="{Binding CheckingFinishedWithSuccess}">
                     <Button Command="{Binding CheckStatusCommand}" Visibility="{Binding IsSessionFinished, Converter={StaticResource BoolNegation}}">Check Status</Button>
                     <Button Command="{Binding ViewFilesCommand}">View Files</Button>
                 </StackPanel>

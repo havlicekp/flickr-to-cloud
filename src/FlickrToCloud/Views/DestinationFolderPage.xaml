@@ -17,7 +17,6 @@
         
     </Page.Resources>
 
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -82,11 +81,9 @@
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center">
             <Button Command="{x:Bind Vm.CreateFolderCommand}" IsEnabled="{Binding LoadingFolders, Converter={StaticResource BoolNegationConverter}}">Create Folder</Button>
             <Button 
-                x:Name="btnContinue" 
-                HorizontalAlignment="Right" 
+                Style="{StaticResource ContinueButtonStyle}"
                 Command="{x:Bind Vm.ContinueCommand}" 
-                IsEnabled="{Binding LoadingFolders, Converter={StaticResource BoolNegationConverter}}" 
-                ContentTemplate="{StaticResource ContinueButtonTemplate}" />
+                IsEnabled="{Binding LoadingFolders, Converter={StaticResource BoolNegationConverter}}"/>
         </StackPanel>
         <local:Footer Grid.Row="4"/>
     </Grid>

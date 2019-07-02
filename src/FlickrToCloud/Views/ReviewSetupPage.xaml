@@ -6,13 +6,22 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:converters="using:FlickrToCloud.Converters"
-    xmlns:views1="using:FlickrToCloud.Views"
+    xmlns:local="using:FlickrToCloud.Views"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <views:MvxWindowsPage.Resources>
         <converters:SessionModeToStringConverter x:Key="SessionModeConverter" />
         <converters:SessionFilesOriginToStringConverter x:Key="SessionFilesOriginConverter" />
+        <Style x:Name="SettingValue" BasedOn="{StaticResource Message}" TargetType="TextBlock">
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Margin" Value="0 0 0 10" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Name="SettingName" TargetType="TextBlock">
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Margin" Value="0 0 80 0" />
+        </Style>
     </views:MvxWindowsPage.Resources>
 
     <Grid>
@@ -21,7 +30,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0">
-            <views1:Header />
+            <local:Header />
             <StackPanel Margin="40 0 40 20" HorizontalAlignment="Left" >
                 <TextBlock Style="{StaticResource Heading}" Text="Review" />
                 <TextBlock Style="{StaticResource Message}" HorizontalAlignment="Left" HorizontalTextAlignment="Left">
@@ -43,30 +52,31 @@
                     </Grid.ColumnDefinitions>
 
                     <!--Source-->
-                    <TextBlock Grid.Column="0" Grid.Row="0" Margin="0 0 80 0">Source</TextBlock>
-                    <TextBlock Grid.Column="1" Grid.Row="0" Style="{StaticResource Message}" Margin="0 0 0 10" VerticalAlignment="Center" Text="{Binding SourceCloudName}"/>
+                    <TextBlock Grid.Row="0" Style="{StaticResource SettingName}">Source</TextBlock>
+                    <TextBlock Grid.Row="0" Style="{StaticResource SettingValue}" Text="{Binding SourceCloudName}"/>
 
                     <!--Destination-->
-                    <TextBlock Grid.Column="0" Grid.Row="1" Margin="0 0 80 0">Destination</TextBlock>
-                    <TextBlock Grid.Column="1" Grid.Row="1" Style="{StaticResource Message}" Margin="0 0 0 10" VerticalAlignment="Center" Text="{Binding DestinationCloudName}" />
+                    <TextBlock Grid.Row="1" Style="{StaticResource SettingName}">Destination</TextBlock>
+                    <TextBlock Grid.Row="1" Style="{StaticResource SettingValue}" Text="{Binding DestinationCloudName}" />
 
                     <!--Folder-->
-                    <TextBlock Grid.Column="0" Grid.Row="2" Margin="0 0 80 0">Folder</TextBlock>
-                    <TextBlock Grid.Column="1" Grid.Row="2" Style="{StaticResource Message}" Margin="0 0 0 10" VerticalAlignment="Center" Text="{Binding DestinationFolder}" />
+                    <TextBlock Grid.Row="2" Style="{StaticResource SettingName}">Folder</TextBlock>
+                    <TextBlock Grid.Row="2" Style="{StaticResource SettingValue}" Text="{Binding DestinationFolder}" />
 
                     <!--Mode-->
-                    <TextBlock Grid.Column="0" Grid.Row="3"  Margin="0 0 80 0">Mode</TextBlock>
-                    <TextBlock Grid.Column="1" Grid.Row="3" Style="{StaticResource Message}" Margin="0 0 0 10" VerticalAlignment="Center" Text="{Binding SessionMode, Converter={StaticResource SessionModeConverter}}">Remote</TextBlock>
+                    <TextBlock Grid.Row="3" Style="{StaticResource SettingName}">Mode</TextBlock>
+                    <TextBlock Grid.Row="3" Style="{StaticResource SettingValue}" Text="{Binding SessionMode, Converter={StaticResource SessionModeConverter}}">Remote</TextBlock>
 
                     <!--Copy-->
-                    <TextBlock Grid.Column="0" Grid.Row="4" Margin="0 0 80 0">Copy</TextBlock>
-                    <TextBlock Grid.Column="1" Grid.Row="4" Style="{StaticResource Message}" Margin="0 0 0 10" VerticalAlignment="Center" Text="{Binding SessionFilesOrigin, Converter={StaticResource SessionFilesOriginConverter}}" />
+                    <TextBlock Grid.Row="4" Style="{StaticResource SettingName}">Copy</TextBlock>
+                    <TextBlock Grid.Row="4" Style="{StaticResource SettingValue}" Text="{Binding SessionFilesOrigin, Converter={StaticResource SessionFilesOriginConverter}}" />
 
                 </Grid>
 
-                <Button HorizontalAlignment="Right" Command="{Binding ContinueCommand}" Width="110" Margin="0 30 0 0" ContentTemplate="{StaticResource ContinueButtonTemplate}" />
+                <Button Style="{StaticResource ContinueButtonStyle}" Command="{Binding ContinueCommand}" Margin="0 30 0 0" />
                 
             </StackPanel>
         </StackPanel>
+        <local:Footer Grid.Row="1"/>
     </Grid>
 </views:MvxWindowsPage>

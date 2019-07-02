@@ -71,6 +71,7 @@ namespace FlickrToCloud.Core.Services
                 progress.ProcessedItems = resumeProgress.ProcessedItems;
                 progress.ProcessedWithError = resumeProgress.ProcessedWithError;
                 progress.ProcessedWithSuccess = resumeProgress.ProcessedWithSuccess;
+                progress.InProgress = resumeProgress.InProgress;
             }         
 
             _log.Information($"Going to check status for {files.Count()} file(s)");
@@ -163,7 +164,7 @@ namespace FlickrToCloud.Core.Services
             {
                 if (setup.Session.Mode == SessionMode.Local)
                 {
-                    // Upload file only once and copy its occurences on the remote server
+                    // Upload file only once and copy its occurrences on the remote server
                     var groupedFiles = files.GroupBy(f => f.SourceId);
                     await groupedFiles.ForEachAsync(UploadFileGroup, setup, progress, ct);
                 }
@@ -232,7 +233,7 @@ namespace FlickrToCloud.Core.Services
                 var toPath = CombinePath(setup.Session.DestinationFolder, file.SourcePath);
                 await setup.Destination.CopyFileAsync(fromFilePath, toPath, ct);
                 file.UpdateState(FileState.Finished);
-                _log.Information($"Successuflly copied file from {fromFilePath} to {toPath}");
+                _log.Information($"Successfully copied file from {fromFilePath} to {toPath}");
                 Interlocked.Increment(ref progress.ProcessedWithSuccess);
             }
             catch (OperationCanceledException)

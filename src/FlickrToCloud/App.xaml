@@ -3,10 +3,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
     xmlns:core="using:Microsoft.Xaml.Interactions.Core"
-    xmlns:flickrToCloud="using:FlickrToCloud">
+    xmlns:flickrToCloud="using:FlickrToCloud"
+    xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls">
     <Application.Resources>
         
-        <!-- TextBlock Styles -->
+        <!-- 
+            TextBlock Styles
+        -->
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Sergoe UI"/>
             <Setter Property="Foreground" Value="{ThemeResource ApplicationForegroundThemeBrush}"/>
@@ -26,13 +29,22 @@
             <Setter Property="Foreground" Value="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
         </Style>
 
-        <!-- Button Styles -->
-        <Style TargetType="Button">
+        <!--             
+            Button Styles             
+        -->
+        <Style TargetType="Button" x:Key="ButtonBaseStyle">
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="Width" Value="120"/>
             <Setter Property="Foreground" Value="{ThemeResource ApplicationForegroundThemeBrush}"/>
             <Setter Property="Margin" Value="0 10 10 10"/>
         </Style>
+
+        <!-- Base all buttons on ButtonBaseStyle defined above -->
+        <Style TargetType="Button" BasedOn="{StaticResource ButtonBaseStyle}" />
+
+        <!-- 
+            Continue button styles 
+        -->
 
         <!-- Since TextBox inside a button doesn't reflect disabled/enabled color of the parent Button these 
         behaviors provide the missing link. The parent button has to be named btnContinue
@@ -58,6 +70,24 @@
                 <FontIcon FontWeight="ExtraBold" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5 3 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEBE7;" FontSize="14" />
             </StackPanel>
         </DataTemplate>
+
+        <Style TargetType="Button" x:Name="ContinueButtonStyle">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Width" Value="110" />
+            <Setter Property="ContentTemplate" Value="{StaticResource ContinueButtonTemplate}" />
+        </Style>
+
+        <!--
+            Radial progress bar styles
+        -->
+        <Style x:Key="DefaultProgressBarStyle" TargetType="controls:RadialProgressBar">
+            <Setter Property="Thickness" Value="8" />
+            <Setter Property="Minimum" Value="0" />
+            <Setter Property="Width" Value="200" />
+            <Setter Property="Height" Value="200" />
+            <Setter Property="Foreground" Value="#9f86ff" />
+            <Setter Property="Outline" Value="#1bc98e" />
+        </Style>
 
     </Application.Resources>
 </flickrToCloud:Application>

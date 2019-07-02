@@ -164,24 +164,20 @@ namespace FlickrToCloud.Core.ViewModels
 
         }
 
-        public override async void ViewAppeared()
+        public override async void ViewAppearing()
         {
-            base.ViewAppeared();
+            base.ViewAppearing();
 
             // Discard back stack - it shouldn't be possible to go back after
             // upload settings are confirmed
             await _navigationService.ChangePresentation(new ClearBackStackHint());
+        }
 
-            /*var failedFiles = _setup.Session.GetFiles(FileState.Failed);
-            if (failedFiles.Any())
-            {
-                await _dialogService.ShowDialog("Information", "There are files which failed to upload last time. These will be processed again");
-                await StartUpload(true);
-            }
-            else*/
-            {
-                await StartUpload();
-            }
+        public override async Task Initialize()
+        {
+            await base.Initialize();
+
+            await StartUpload();
         }
 
         #region Properties
@@ -407,6 +403,7 @@ namespace FlickrToCloud.Core.ViewModels
                 await _navigationService.ChangePresentation(new PopBackStackHint());
             }
 
+            _setup.RequestStatusCheck = true;
             await _navigationService.Navigate<StatusViewModel, Setup>(_setup);
         }
 

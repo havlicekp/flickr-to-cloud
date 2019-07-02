@@ -5,15 +5,24 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:toolkitConverters="using:Microsoft.Toolkit.Uwp.UI.Converters"
-    xmlns:converters="using:FlickrToCloud.Converters"
     xmlns:local="using:FlickrToCloud.Views"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     >
     <Page.Resources>
-        <toolkitConverters:BoolNegationConverter x:Key="BoolNegationConverter"/>
-        <converters:SessionModeToStringConverter x:Key="SessionModeConverter" />
+        <Style TargetType="FontIcon" x:Name="BaseIconStyle">
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="FontFamily" Value="{StaticResource SymbolThemeFontFamily}"/>
+            <Setter Property="FontSize" Value="26"/>
+            <Setter Property="Foreground" Value="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
+            <Setter Property="Margin" Value="10 0 0 0"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Name="HintStyle">
+            <Setter Property="Margin" Value="0 -3 0 0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
+            <Setter Property="HorizontalTextAlignment" Value="Left"/>
+        </Style>
     </Page.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -25,38 +34,36 @@
             <StackPanel>
                 <StackPanel Margin="40 0 40 0">
                     <TextBlock Style="{StaticResource Heading}">Copy mode</TextBlock>
-                    <StackPanel Orientation="Vertical">
-                        <RadioButton  IsChecked="{Binding SessionModeRemote, Mode=TwoWay}" Content="Remote" />
-                        <StackPanel Orientation="Vertical" Margin="28 0 0 20">
-                            <TextBlock TextWrapping="Wrap"
-                                       Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}">
-                                Destination cloud copies files directly from Flickr. Copying runs in background but can't be cancelled                                
+                    <StackPanel>
+                        <RadioButton IsChecked="{Binding SessionModeRemote, Mode=TwoWay}" Content="Remote" />
+                        <StackPanel Margin="28 0 0 20">
+                            <TextBlock Style="{StaticResource HintStyle}">
+                                Destination cloud copies files directly from Flickr. Use this if you have slow upload or metered connection                                
                             </TextBlock>
-                            <StackPanel Orientation="Horizontal" Margin="0 5 0 0">
-                                <FontIcon HorizontalAlignment="Left" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE753;" FontSize="26" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
-                                <FontIcon HorizontalAlignment="Left" Margin="10 0 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEBE7;" FontSize="26" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
-                                <FontIcon HorizontalAlignment="Left" Margin="10 0 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE753;" FontSize="26" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
+                            <StackPanel Orientation="Horizontal" Margin="-10 5 0 0">
+                                <FontIcon Style="{StaticResource BaseIconStyle}" Glyph="&#xE753;" />
+                                <FontIcon Style="{StaticResource BaseIconStyle}" Glyph="&#xEBE7;"/>
+                                <FontIcon Style="{StaticResource BaseIconStyle}" Glyph="&#xE753;" />
                             </StackPanel>
                         </StackPanel>
 
                         <RadioButton IsChecked="{Binding SessionModeLocal, Mode=TwoWay}" Content="Local" />
-                        <StackPanel Orientation="Vertical" Margin="28 0 0 0">
-                            <TextBlock TextWrapping="Wrap"
-                                       Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}">
-                                    Downloads files to this PC first, then uploads them. The app needs to be open all the time. Copying can be cancelled
+                        <StackPanel Margin="28 0 0 0">
+                            <TextBlock Style="{StaticResource HintStyle}">
+                                    Downloads files to this PC first, then uploads them. Use this if you have unlimited and fast internet connection 
                             </TextBlock>
-                            <StackPanel Orientation="Horizontal" Margin="0 5 0 0">
-                                <FontIcon HorizontalAlignment="Left" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE753;" FontSize="26" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
-                                <FontIcon HorizontalAlignment="Left" Margin="10 0 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEBE7;" FontSize="26" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
-                                <FontIcon HorizontalAlignment="Left" Margin="10 0 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEC4E;" FontSize="22" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
-                                <FontIcon HorizontalAlignment="Left" Margin="10 0 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEBE7;" FontSize="26" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
-                                <FontIcon HorizontalAlignment="Left" Margin="10 0 0 0" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE753;" FontSize="26" Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}"/>
+                            <StackPanel Orientation="Horizontal" Margin="-10 5 0 0">
+                                <FontIcon Style="{StaticResource BaseIconStyle}" Glyph="&#xE753;" />
+                                <FontIcon Style="{StaticResource BaseIconStyle}" Glyph="&#xEBE7;" />
+                                <FontIcon Style="{StaticResource BaseIconStyle}" Glyph="&#xEC4E;" />
+                                <FontIcon Style="{StaticResource BaseIconStyle}" Glyph="&#xEBE7;" />
+                                <FontIcon Style="{StaticResource BaseIconStyle}" Glyph="&#xE753;" />
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
-                <StackPanel Orientation="Vertical" Margin="40 30 40 0">
-                    <TextBlock Style="{StaticResource Heading}" Margin="0 5 0 10">What to copy</TextBlock>
+                <StackPanel Margin="40 30 40 0">
+                    <TextBlock Style="{StaticResource Heading}" Margin="0 0 0 10">What to copy</TextBlock>
                     <ToggleSwitch OffContent="Off" OnContent="On" IsOn="{Binding FilesOriginFolders, Mode=TwoWay}">
                         <ToggleSwitch.HeaderTemplate>
                             <DataTemplate>
@@ -77,7 +84,7 @@
                             </DataTemplate>
                         </ToggleSwitch.HeaderTemplate>
                     </ToggleSwitch>
-                    <Button HorizontalAlignment="Right" Command="{Binding ContinueCommand}" Width="110" ContentTemplate="{StaticResource ContinueButtonTemplate}" />
+                    <Button Style="{StaticResource ContinueButtonStyle}" Command="{Binding ContinueCommand}" Margin="0 10 0 0"/>
                 </StackPanel>
             </StackPanel>
         </StackPanel>

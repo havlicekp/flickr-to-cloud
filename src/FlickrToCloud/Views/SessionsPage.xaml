@@ -39,7 +39,11 @@
                   BorderThickness="2"
                   Margin="40 0 40 10"
                   SelectedItem="{x:Bind Vm.SelectedSession, Mode=TwoWay}"
-                  KeyDown="OnKeyDown">
+                  KeyDown="OnKeyDown" 
+                  ScrollViewer.HorizontalScrollMode="Enabled"
+                  ScrollViewer.HorizontalScrollBarVisibility="Visible" 
+                  ScrollViewer.IsHorizontalRailEnabled="True"
+                  >
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="models:Session">
                     <Grid>
@@ -57,11 +61,14 @@
                                        Margin="0,0,16,0"
                                        Source="ms-appx:///Assets/logo.png" />
                         <TextBlock Grid.Column="1" Grid.Row="0" Text="{x:Bind}" />
-                        <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal">
-                            <TextBlock>
-                                <Run>Destination Folder: </Run>
-                                <Run />
+                        <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Vertical">
+                            <TextBlock Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}">
+                                <Run Text="Destination: " />
                                 <Run Text="{x:Bind DestinationFolder}" />
+                            </TextBlock>
+                            <TextBlock Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}">
+                                <Run Text="Mode: " />
+                                <Run Text="{x:Bind Mode}" />
                             </TextBlock>
                         </StackPanel>
                     </Grid>
