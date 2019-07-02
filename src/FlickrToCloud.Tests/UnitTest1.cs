@@ -8,6 +8,7 @@ namespace FlickrToCloud.Tests
         public void Test1()
         {
 
+
         }
     }
 }
