@@ -20,20 +20,6 @@ namespace FlickrToCloud.Tests
         private Mock<ICloudFileSystem> _mockedOneDrive;
 
         /// <summary>
-        /// Verify that files returned from the source cloud are correctly persisted
-        /// </summary>
-        [Fact]
-        public async void ReadSourceItemsAreSavedTest()
-        {
-            await Setup();
-
-            using (var db = new CloudCopyContext())
-            {
-                Assert.True(db.Files.Count() == 2);
-            }
-        }
-
-        /// <summary>
         /// Verify that folders specified for the source files are created on the destination cloud
         /// </summary>
         [Fact]
@@ -55,6 +41,20 @@ namespace FlickrToCloud.Tests
 
             _mockedOneDrive.Verify(x => x.UploadFileAsync("/Test/DSC05801.jpg", It.IsAny<string>(), CancellationToken.None), Times.Once());
             _mockedOneDrive.Verify(x => x.CopyFileAsync("/Test/DSC05801.jpg", "/Auto Upload/Test", CancellationToken.None), Times.Once());
+        }
+
+        /// <summary>
+        /// Verify that files returned from the source cloud are correctly persisted
+        /// </summary>
+        [Fact]
+        public async void ReadSourceItemsAreSavedTest()
+        {
+            await Setup();
+
+            using (var db = new CloudCopyContext())
+            {
+                Assert.True(db.Files.Count() == 2);
+            }
         }
 
         private new async Task Setup(Action<Session, Setup> beforeCopy = null)

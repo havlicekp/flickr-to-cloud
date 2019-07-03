@@ -1,6 +1,4 @@
-﻿using Windows.Foundation;
-using Windows.System;
-using Windows.UI.ViewManagement;
+﻿using Windows.System;
 using Windows.UI.Xaml.Input;
 using FlickrToCloud.Core.ViewModels;
 using MvvmCross.Platforms.Uap.Views;
@@ -14,8 +12,6 @@ namespace FlickrToCloud.Views
         public SessionsPage()
         {
             this.InitializeComponent();
-            ApplicationView.PreferredLaunchViewSize = new Size(480, 800);
-            ApplicationView.PreferredLaunchWindowingMode = ApplicationViewWindowingMode.PreferredLaunchViewSize;
         }
 
         public SessionsViewModel Vm => (SessionsViewModel)ViewModel;

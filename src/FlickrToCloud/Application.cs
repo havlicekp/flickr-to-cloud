@@ -1,6 +1,7 @@
-﻿using System;
-using Windows.ApplicationModel.Activation;
-using FlickrToCloud.Contracts.Interfaces;
+﻿using Windows.ApplicationModel.Activation;
+using Windows.Foundation;
+using Windows.Graphics.Display;
+using Windows.UI.ViewManagement;
 using MvvmCross.IoC;
 using MvvmCross.Platforms.Uap.Views;
 using Serilog;
@@ -21,22 +22,12 @@ namespace FlickrToCloud
             log.Error(e.Exception, "Unhandled Exception");
         }
 
-        protected override async void OnActivated(IActivatedEventArgs args)
+        protected override void OnLaunched(LaunchActivatedEventArgs activationArgs)
         {
-            if (args.Kind == ActivationKind.Protocol)
-            {
-                try
-                {
-                    var authCallbackDispatcher = MvxIoCProvider.Instance.Resolve<IAuthenticationCallbackDispatcher>();
-                    var eventArgs = args as ProtocolActivatedEventArgs;
-                    await authCallbackDispatcher.DispatchUriCallback(eventArgs.Uri);
-                }
-                catch (Exception e)
-                {
-                    var dialogService = MvxIoCProvider.Instance.Resolve<IDialogService>();
-                    await dialogService.ShowDialog("Error", e.Message);
-                }
-            }
-        }        
+            base.OnLaunched(activationArgs);
+            var dpi = DisplayInformation.GetForCurrentView().LogicalDpi;
+            ApplicationView.PreferredLaunchViewSize = new Size((502 * 96.0f / dpi), (739 * 96.0f / dpi));
+            ApplicationView.PreferredLaunchWindowingMode = ApplicationViewWindowingMode.PreferredLaunchViewSize;
+        }
     }
 }
