@@ -61,7 +61,6 @@ namespace FlickrToCloud.Core.ViewModels
                                 Started = DateTime.Now,
                                 Mode = SessionMode.Remote, // Default value for Mode
                                 FilesOrigin = SessionFilesOrigin.Structured // Default value for FilesOrigin
-                                     
                             }; 
                             db.Sessions.Add(_setup.Session);
                             db.SaveChanges();

@@ -21,6 +21,7 @@ namespace FlickrToCloud.Core.Services
     {
         private readonly ILogger _log;
         private readonly IStorageService _storageService;
+        private readonly IDownloadService _downloadService;
 
         public event Action<UploadProgress> UploadProgressHandler;
         public event Action<UploadProgress> UploadFinishedHandler;
@@ -31,10 +32,11 @@ namespace FlickrToCloud.Core.Services
         public event Action<StatusCheckProgress> CheckingStatusFinishedHandler;
         public event Action<ReadingFilesProgress> ReadingFilesProgressHandler;
 
-        public CloudCopyService(ILogger log, IStorageService storageService)
+        public CloudCopyService(ILogger log, IStorageService storageService, IDownloadService downloadService)
         {
             _log = log.ForContext(GetType());
             _storageService = storageService;
+            _downloadService = downloadService;
         }
 
         public async Task<bool> Copy(Setup setup, bool retryFailed, CancellationToken ct)
@@ -325,7 +327,7 @@ namespace FlickrToCloud.Core.Services
             var localFileName = $"{Guid.NewGuid().ToString()}.tmp";            
             try
             {
-                await DownloadFile(file.SourceUrl, localFileName, ct);
+                await _downloadService.DownloadFile(file.SourceUrl, localFileName, ct);
                 await setup.Destination.UploadFileAsync(destinationFilePath, localFileName, ct);
                 file.UpdateState(FileState.Finished);
                 _log.Information($"UploadFileLocaly succeeded (@File)", file);
@@ -399,17 +401,6 @@ namespace FlickrToCloud.Core.Services
 
             Interlocked.Increment(ref progress.ProcessedItems);
             CheckingStatusHandler?.Invoke(progress);
-        }
-
-        private async Task DownloadFile(string sourceUrl, string localFileName, CancellationToken ct)
-        {
-            ct.ThrowIfCancellationRequested();
-            using (var client = new HttpClient())
-            using (var inputStream = await client.GetStreamAsync(sourceUrl))
-            using (var outputStream = await _storageService.OpenFileStreamForWriteAsync(localFileName))
-            {
-                await inputStream.CopyToAsync(outputStream, 81920, ct);
-            }
         }
 
         private string CombinePath(params string[] parameters)

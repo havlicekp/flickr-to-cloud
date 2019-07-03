@@ -25,6 +25,7 @@ namespace FlickrToCloud.Core
         {
             Mvx.IoCProvider.ConstructAndRegisterSingleton<IFlickrClient, FlickrClient>();
             Mvx.IoCProvider.RegisterType<ICloudFileSystemFactory, CloudFileSystemFactory>();
+            Mvx.IoCProvider.RegisterType<IDownloadService, DownloadService>();
             Mvx.IoCProvider.LazyConstructAndRegisterSingleton<ICloudCopyService, CloudCopyService>();
             Mvx.IoCProvider.RegisterSingleton<IAuthenticationCallbackDispatcher>(new AuthenticationCallbackDispatcher());
             RegisterCustomAppStart<AppStart>();
