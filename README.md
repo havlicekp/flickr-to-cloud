@@ -1,5 +1,5 @@
 # Flickr To Cloud
-Backup your Flickr albums and photo stream to a cloud storage. When available, photos can be also copied directly between Flickr and the cloud, without downloading them locally.
+Backup your Flickr albums and/or photo stream to a cloud storage. When available, photos can be also copied directly between Flickr and the cloud, without downloading them locally.
 
 ![](https://github.com/havlicekp/flickr-to-cloud/blob/master/images/mockup4.jpg)
 
