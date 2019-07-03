@@ -1,7 +1,7 @@
 # Flickr To Cloud
-Backup your Flickr albums and photo stream to a cloud storage. When available, photos can be also copied directly between Flickr and the cloud, without downloading them locally.
+Backup your Flickr albums and/or photo stream to a cloud storage. When available, photos can be also copied directly between Flickr and the cloud, without downloading them locally.
 
-![](https://github.com/havlicekp/flickr-to-cloud/blob/master/images/mockup3.jpg)
+![](https://github.com/havlicekp/flickr-to-cloud/blob/master/images/mockup4.jpg)
 
 ## Technical details
 * Windows Store application (UWP project + .NET Standard 2.0 assemblies)
@@ -11,5 +11,5 @@ Backup your Flickr albums and photo stream to a cloud storage. When available, p
 * [EF Core](https://github.com/aspnet/EntityFrameworkCore) used for session persistence (SQLite)
 * Consuming REST API(s) with interactive OAuth/OAuth2 authorization
 * Logging using [Serilog](https://serilog.net/)
-* Unit tests using [Moq](https://github.com/moq/moq4) 
+* Unit tests using [xUnit](https://xunit.net/) and [Moq](https://github.com/moq/moq4) 
 * Adapts to light/dark Windows mode 
