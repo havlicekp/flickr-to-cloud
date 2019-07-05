@@ -6,7 +6,11 @@ using FlickrToCloud.Contracts;
 using FlickrToCloud.Contracts.Interfaces;
 using FlickrToCloud.Contracts.Models;
 using FlickrToCloud.Contracts.Progress;
+using FlickrToCloud.Core;
 using FlickrToCloud.Core.Services;
+using FlickrToCloud.Core.Uploaders;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Moq;
 using MvvmCross.IoC;
 using MvvmCross.Tests;
@@ -15,8 +19,24 @@ using Xunit;
 
 namespace FlickrToCloud.Tests
 {
-    public class CloudCopyServiceTests : MvxIoCSupportingTest, IClassFixture<DatabaseFixture>
+    public class CloudCopyServiceTests : MvxIoCSupportingTest, IDisposable
     {
+        public CloudCopyServiceTests()
+        {
+            using (var db = new CloudCopyContext())
+            {
+                db.Database.Migrate();
+            }
+        }
+
+        public void Dispose()
+        {
+            using (var db = new CloudCopyContext())
+            {
+                db.Database.EnsureDeleted();
+            }
+        }
+
         private Mock<ICloudFileSystem> _mockedOneDrive;
 
         /// <summary>
@@ -39,9 +59,30 @@ namespace FlickrToCloud.Tests
         {
             await Setup((session, setup) => session.Mode = SessionMode.Local);
 
-            _mockedOneDrive.Verify(x => x.UploadFileAsync("/Test/DSC05801.jpg", It.IsAny<string>(), CancellationToken.None), Times.Once());
-            _mockedOneDrive.Verify(x => x.CopyFileAsync("/Test/DSC05801.jpg", "/Auto Upload/Test", CancellationToken.None), Times.Once());
+            _mockedOneDrive.Verify(x => x.UploadFileAsync("/DSC05801.jpg", It.IsAny<string>(), CancellationToken.None), Times.Once());
+            _mockedOneDrive.Verify(x => x.CopyFileAsync("/DSC05801.jpg", "/Test", "DSC05801.jpg", CancellationToken.None), Times.Once());
         }
+
+        /// <summary>
+        /// Verify that files returned from the source cloud are correctly persisted
+        /// </summary>
+        [Fact]
+        public async void DuplicateFilesGetUniqueFileNamesTest()
+        {
+            await Setup();
+
+            using (var db = new CloudCopyContext())
+            {
+                var files = db.Files
+                    .Where(f => f.SourcePath == "/" && f.SourceFileName == "DSC05801.jpg")
+                    .OrderByDescending(f => f.FileName)
+                    .ToArray();
+
+                Assert.True(files[0].FileName == "DSC05801.jpg");
+                Assert.True(files[1].FileName == "DSC05801 (2).jpg");
+            }
+        }
+
 
         /// <summary>
         /// Verify that files returned from the source cloud are correctly persisted
@@ -53,11 +94,11 @@ namespace FlickrToCloud.Tests
 
             using (var db = new CloudCopyContext())
             {
-                Assert.True(db.Files.Count() == 2);
+                Assert.True(db.Files.Count() == 5);
             }
         }
 
-        private new async Task Setup(Action<Session, Setup> beforeCopy = null)
+        private async Task Setup(Action<Session, Setup> beforeCopy = null)
         {
             // Brings MvvmCross's Ioc test container 
             base.Setup();
@@ -70,18 +111,41 @@ namespace FlickrToCloud.Tests
                 {
                     new File
                     {
-                        SourceUrl = @"https://farm2.staticflickr.com/1673/26638474801_081d111a4b_o.png",
+                        SourceUrl = @"https://farm2.staticflickr.com/1673/a.png",
                         SourceId = "23195831080",
-                        FileName = "DSC05801.jpg",
+                        SourceFileName = "DSC05801.jpg",
+                        SourcePath = "/"
+                    },
+                    new File
+                    {
+                        SourceUrl = @"https://farm2.staticflickr.com/1673/b.png",
+                        SourceId = "23195831081", // <= different source ID under '/' but the same file name
+                                                  // => should be uploaded as 'DSC05801 (2).jpg'
+                        SourceFileName = "DSC05801.jpg",
+                        SourcePath = "/"
+                    },
+                    new File
+                    {
+                        SourceUrl = @"https://farm2.staticflickr.com/1673/b.png",
+                        SourceId = "23195831080", // <= same as under '/'
+                                                  // but this time the file should be COPIED as 'DSC05801 (2).jpg'
+                                                
+                        SourceFileName = "DSC05801.jpg",
+                        SourcePath = "/Test"
+                    },
+                    new File
+                    {
+                        SourceUrl = @"https://farm2.staticflickr.com/1673/b.png",
+                        SourceId = "23195831081",
+                        SourceFileName = "DSC05801.jpg",
                         SourcePath = "/Test"
                     },
                     new File
                     {
                         SourceUrl = @"https://farm2.staticflickr.com/1597/26098709134_baa6a392e9_o.png",
                         SourceId = "23195831080",
-                        FileName = "DSC05791.jpg",
+                        SourceFileName = "DSC05791.jpg",
                         SourcePath = "/Auto Upload/Test"
-
                     }
                 };
                 return files;
@@ -93,7 +157,7 @@ namespace FlickrToCloud.Tests
 
             _mockedOneDrive = new Mock<ICloudFileSystem>();
             _mockedOneDrive.Setup(x =>
-                    x.UploadFileFromUrlAsync(It.IsAny<string>(), It.IsAny<File>(), It.IsAny<CancellationToken>()))
+                    x.UploadFileFromUrlAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .Returns(async () =>
                 {
                     return
@@ -101,7 +165,9 @@ namespace FlickrToCloud.Tests
                 });
 
             var mockedLog = new Mock<ILogger>();
-            mockedLog.Setup(x => x.ForContext(typeof(CloudCopyService))).Returns(mockedLog.Object);
+            mockedLog.Setup(x => x.ForContext(It.IsAny<Type>())).Returns(mockedLog.Object);
+            mockedLog.Setup(x => x.ForContext<RemoteUploader>()).Returns(mockedLog.Object);
+            mockedLog.Setup(x => x.ForContext<LocalUploader>()).Returns(mockedLog.Object);
 
             var mockedStorageService = new Mock<IStorageService>();
             var mockedDownloadService = new Mock<IDownloadService>();
@@ -128,6 +194,7 @@ namespace FlickrToCloud.Tests
             Ioc.RegisterSingleton(mockedLog.Object);
             Ioc.RegisterSingleton(mockedDownloadService.Object);
             Ioc.LazyConstructAndRegisterSingleton<ICloudCopyService, CloudCopyService>();
+            Ioc.LazyConstructAndRegisterSingleton<IUploaderFactory, UploaderFactory>();
 
             var session = new Session()
             {
@@ -155,7 +222,7 @@ namespace FlickrToCloud.Tests
             beforeCopy?.Invoke(session, setup);
 
             var cloudCopyService = Ioc.Resolve<ICloudCopyService>();
-            await cloudCopyService.Copy(setup, false, CancellationToken.None);
+            await cloudCopyService.Copy(setup, CancellationToken.None);
         }
     }
 }
