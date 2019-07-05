@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Castle.Core.Internal;
 using FlickrToCloud.Contracts;
 using FlickrToCloud.Contracts.Exceptions;
 using FlickrToCloud.Contracts.Extensions;
@@ -13,33 +10,33 @@ using FlickrToCloud.Contracts.Interfaces;
 using FlickrToCloud.Contracts.Models;
 using FlickrToCloud.Contracts.Progress;
 using FlickrToCloud.Core.Extensions;
+using FlickrToCloud.Common;
 using Serilog;
+using File = FlickrToCloud.Contracts.Models.File;
 
 namespace FlickrToCloud.Core.Services
 {
     public class CloudCopyService : ICloudCopyService
     {
         private readonly ILogger _log;
-        private readonly IStorageService _storageService;
-        private readonly IDownloadService _downloadService;
+        private readonly IUploaderFactory _uploaderFactory;
 
         public event Action<UploadProgress> UploadProgressHandler;
         public event Action<UploadProgress> UploadFinishedHandler;
-        public event Action ReadingFilesStartingHandler;
         public event Action<UploadProgress> UploadStartingHandler;
+        public event Action ReadingFilesStartingHandler;
         public event Action CreatingFoldersHandler;
         public event Action<StatusCheckProgress> CheckingStatusHandler;
         public event Action<StatusCheckProgress> CheckingStatusFinishedHandler;
         public event Action<ReadingFilesProgress> ReadingFilesProgressHandler;
 
-        public CloudCopyService(ILogger log, IStorageService storageService, IDownloadService downloadService)
+        public CloudCopyService(ILogger log, IUploaderFactory uploaderFactory)
         {
             _log = log.ForContext(GetType());
-            _storageService = storageService;
-            _downloadService = downloadService;
+            _uploaderFactory = uploaderFactory;
         }
 
-        public async Task<bool> Copy(Setup setup, bool retryFailed, CancellationToken ct)
+        public async Task<bool> Copy(Setup setup, CancellationToken ct)
         {
             // Read source files
             if (setup.Session.State <= SessionState.ReadingSource)
@@ -47,7 +44,8 @@ namespace FlickrToCloud.Core.Services
                 await ReadSource(setup, ct);
             }
 
-            // Create destination folders
+            // Create destination folders for remote session
+            // For local session, folders get created automatically
             if (setup.Session.FilesOrigin.HasFlag(SessionFilesOrigin.Structured)
                 && (setup.Session.Mode == SessionMode.Remote)
                 && (setup.Session.State <= SessionState.CreatingFolders))
@@ -57,7 +55,7 @@ namespace FlickrToCloud.Core.Services
             }
 
             // Copy source to destination
-            return await ResumeUpload(setup, retryFailed, ct);
+            return await ResumeUpload(setup, ct);
         }
 
         public async Task CheckStatus(Setup setup, CancellationToken ct, StatusCheckProgress resumeProgress)
@@ -69,11 +67,7 @@ namespace FlickrToCloud.Core.Services
             {
                 // Skip already processed files
                 files = files.Skip(resumeProgress.ProcessedItems).ToList();
-
-                progress.ProcessedItems = resumeProgress.ProcessedItems;
-                progress.ProcessedWithError = resumeProgress.ProcessedWithError;
-                progress.ProcessedWithSuccess = resumeProgress.ProcessedWithSuccess;
-                progress.InProgress = resumeProgress.InProgress;
+                CopyProgress(resumeProgress, progress);
             }         
 
             _log.Information($"Going to check status for {files.Count()} file(s)");
@@ -88,6 +82,14 @@ namespace FlickrToCloud.Core.Services
 
             CheckingStatusFinishedHandler?.Invoke(progress);
 
+        }
+
+        private void CopyProgress(StatusCheckProgress resumeProgress, StatusCheckProgress progress)
+        {
+            progress.ProcessedItems = resumeProgress.ProcessedItems;
+            progress.ProcessedWithError = resumeProgress.ProcessedWithError;
+            progress.ProcessedWithSuccess = resumeProgress.ProcessedWithSuccess;
+            progress.InProgress = resumeProgress.InProgress;
         }
 
         private async Task ReadSource(Setup setup, CancellationToken ct)
@@ -107,15 +109,16 @@ namespace FlickrToCloud.Core.Services
                 {
                     using (var db = new CloudCopyContext())
                     {
-                        using (var transaction = await db.Database.BeginTransactionAsync())
+                        using (var transaction = await db.Database.BeginTransactionAsync(ct))
                         {
                             foreach (var file in sourceFiles)
                             {
                                 file.SessionId = setup.Session.Id;
+                                file.FileName = GetUniqueFileName(file, sourceFiles);
                             }
                             await db.Files.AddRangeAsync(sourceFiles);
 
-                            await db.SaveChangesAsync();
+                            await db.SaveChangesAsync(ct);
                             transaction.Commit();
                         }
                     }
@@ -144,55 +147,21 @@ namespace FlickrToCloud.Core.Services
             throw new NothingToUploadException();
         }
 
-        private async Task<bool> ResumeUpload(Setup setup, bool retryFailed, CancellationToken ct)
+        private async Task<bool> ResumeUpload(Setup setup, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
-
             setup.Session.UpdateState(SessionState.Uploading);
 
-            var files = new List<File>();
-            files.AddRange(setup.Session.GetFiles(FileState.None));
+            // Create local/remote uploader
+            var uploader = _uploaderFactory.Create(setup);
 
-            var failedFiles = setup.Session.GetFiles(FileState.Failed);
-            files.AddRange(failedFiles);
-            
-            var uploadedFileState = setup.Session.Mode == SessionMode.Local ? FileState.Finished : FileState.InProgress;
-            var uploadedFilesCount = setup.Session.GetFiles(uploadedFileState).Count;
-            var progress = new UploadProgress { TotalItems = files.Count() + uploadedFilesCount, ProcessedItems = uploadedFilesCount };
+            // Wire progress events
+            uploader.UploadStartingHandler += (progress) => UploadStartingHandler?.Invoke(progress);
+            uploader.UploadProgressHandler += (progress) => UploadProgressHandler?.Invoke(progress);
+            uploader.UploadFinishedHandler += (progress) => UploadFinishedHandler?.Invoke(progress);
 
-            UploadStartingHandler?.Invoke(progress);
-
-            if (files.Any())
-            {
-                if (setup.Session.Mode == SessionMode.Local)
-                {
-                    // Upload file only once and copy its occurrences on the remote server
-                    var groupedFiles = files.GroupBy(f => f.SourceId);
-                    await groupedFiles.ForEachAsync(UploadFileGroup, setup, progress, ct);
-                }
-                else
-                {
-                    // When uploading remotely (from URL) we can let destination cloud to download all files
-                    // There is no need to group the files and copy them on the remote server
-                    await files.ForEachAsync(UploadFile, setup, progress, ct);
-                }
-            }
-
-            //var uploadFinished = progress.ProcessedWithError == 0 && !ct.IsCancellationRequested;
-            var uploadFinished = setup.Session.GetFiles(FileState.Failed).IsNullOrEmpty();
-            if (uploadFinished)
-            {
-                // All files were uploaded without any errors, local session is considered finished
-                // For remote upload, session state is set to Finished during CheckStatus
-                var finishedSessionState = setup.Session.Mode == SessionMode.Local
-                    ? SessionState.Finished
-                    : SessionState.Checking;
-                setup.Session.UpdateState(finishedSessionState);
-            }
-
-            UploadFinishedHandler?.Invoke(progress);
-            //return progress.ProcessedWithError == 0;
-            return uploadFinished;
+            // Upload the files
+            return await uploader.Upload(ct);
         }
 
         private async Task CreateFoldersAsync(Setup setup, CancellationToken ct)
@@ -204,59 +173,9 @@ namespace FlickrToCloud.Core.Services
             foreach (var folder in folders)
             {
                 ct.ThrowIfCancellationRequested();
-                var destinationFolder = CombinePath(setup.Session.DestinationFolder, folder);
+                var destinationFolder = PathUtils.CombinePath(setup.Session.DestinationFolder, folder);
                 await setup.Destination.CreateFolderAsync(destinationFolder, ct);
             }
-        }
-
-        private async Task UploadFileGroup(IGrouping<string, File> fileGroup, Setup setup, UploadProgress progress, SemaphoreSlim semaphore, CancellationToken ct)
-        {
-            // Upload the first file
-            var uploadedFile = fileGroup.First();
-            await UploadFile(uploadedFile, setup, progress, semaphore, ct);
-
-            if (fileGroup.Count() > 1)
-            {
-                // Copy rest of the files on remote server
-                var filesToCopy = fileGroup.Where((file) => file != uploadedFile);
-                foreach (var fileToCopy in filesToCopy)
-                {                    
-                    await CopyRemoteFile(setup, progress, uploadedFile, fileToCopy, ct);
-                }
-            }
-        }
-
-        private async Task CopyRemoteFile(Setup setup, UploadProgress progress, File existingFile, File file, CancellationToken ct)
-        {
-            ct.ThrowIfCancellationRequested();
-            try
-            {
-                var fromFilePath = CombinePath(setup.Session.DestinationFolder, existingFile.SourcePath, existingFile.FileName);
-                var toPath = CombinePath(setup.Session.DestinationFolder, file.SourcePath);
-                await setup.Destination.CopyFileAsync(fromFilePath, toPath, ct);
-                file.UpdateState(FileState.Finished);
-                _log.Information($"Successfully copied file from {fromFilePath} to {toPath}");
-                Interlocked.Increment(ref progress.ProcessedWithSuccess);
-            }
-            catch (OperationCanceledException)
-            {
-                _log.Information($"CopyRemoteFile cancelled ({file.FileName})");
-                throw;
-            }
-            catch (Microsoft.Graph.ServiceException e)
-            {
-                TryHandleGraphCancellation(e, $"CopyRemoteFile cancelled ({file.FileName})");
-                throw;
-            }
-            catch (Exception e)
-            {
-                file.SetFailedState(e);
-                Interlocked.Increment(ref progress.ProcessedWithError);
-                _log.Error(e, "Error while copying a remote file", e);
-            }
-
-            Interlocked.Increment(ref progress.ProcessedItems);
-            UploadProgressHandler?.Invoke(progress);
         }
 
         private void TryHandleGraphCancellation(Microsoft.Graph.ServiceException e, string message)
@@ -268,80 +187,9 @@ namespace FlickrToCloud.Core.Services
             }
         }
 
-        private async Task UploadFile(File file, Setup setup, UploadProgress progress, SemaphoreSlim semaphore, CancellationToken ct)
-        {            
-            _log.Verbose($"Uploading file ID: {file.Id}, URL: {file.SourceUrl}");
-
-            await semaphore.WaitAsync(ct);
-            try
-            {
-                if (setup.Session.Mode == SessionMode.Local)
-                {
-                    var destinationFilePath = CombinePath(setup.Session.DestinationFolder, file.SourcePath, file.FileName);
-                    await UploadFileLocaly(file, setup, destinationFilePath, ct);
-                }
-                else
-                {
-                    var destinationFilePath = CombinePath(setup.Session.DestinationFolder, file.SourcePath);
-                    await UploadFileRemotely(file, setup, destinationFilePath, ct);
-                }
-
-                Interlocked.Increment(ref progress.ProcessedWithSuccess);
-            }
-            catch (OperationCanceledException)
-            {
-                _log.Information($"UploadFile cancelled ({file.FileName})");
-                throw;
-            }
-            catch (Microsoft.Graph.ServiceException e)
-            {
-                TryHandleGraphCancellation(e, $"UploadFile cancelled ({file.FileName})");
-                throw;
-            }
-            catch (Exception e)
-            {
-                file.SetFailedState(e);
-                Interlocked.Increment(ref progress.ProcessedWithError);
-                _log.Error(e, "Error while uploading a file", e);
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-
-            // Increment number of processed items even when an exception occurs
-            Interlocked.Increment(ref progress.ProcessedItems);
-            UploadProgressHandler?.Invoke(progress);
-        }
-
-        private async Task UploadFileRemotely(File file, Setup setup, string destinationPath, CancellationToken ct)
-        {
-            var monitorUrl = await setup.Destination.UploadFileFromUrlAsync(destinationPath, file, ct);
-            file.UpdateMonitorUrl(monitorUrl);
-            _log.Information($"UploadFileRemotely succeeded (@File)", file);
-        }
-
-        private async Task UploadFileLocaly(File file, Setup setup, string destinationFilePath, CancellationToken ct)
-        {
-            ct.ThrowIfCancellationRequested();
-            var localFileName = $"{Guid.NewGuid().ToString()}.tmp";            
-            try
-            {
-                await _downloadService.DownloadFile(file.SourceUrl, localFileName, ct);
-                await setup.Destination.UploadFileAsync(destinationFilePath, localFileName, ct);
-                file.UpdateState(FileState.Finished);
-                _log.Information($"UploadFileLocaly succeeded (@File)", file);
-            }
-            finally
-            {
-                if (await _storageService.FileExistsAsync(localFileName))
-                    await _storageService.DeleteFileAsync(localFileName);
-            }
-        }
-
         private async Task CheckFileStatus(File file, Setup setup, StatusCheckProgress progress, SemaphoreSlim semaphore, CancellationToken ct)
         {            
-            await semaphore.WaitAsync();            
+            await semaphore.WaitAsync(ct);            
             try
             {
                 switch (file.State)
@@ -403,22 +251,29 @@ namespace FlickrToCloud.Core.Services
             CheckingStatusHandler?.Invoke(progress);
         }
 
-        private string CombinePath(params string[] parameters)
+        protected string GetUniqueFileName(File file, File[] files)
         {
-            // /Test + /
-            var result = new StringBuilder();
-            for (int i = 0; i < parameters.Length; i++)
+            using (var db = new CloudCopyContext())
             {
-                var p = parameters[i].TrimStart('/').TrimEnd('/');
-                if (p.Length != 0)
-                    result.Append($"/{p}");
+                // Find number of duplicate file names under a folder
+                // => use this number to construct unique file name like 'file (2).jpg'
+                var duplicateCount = files
+                    .Count(dbf => dbf.SourceFileName == file.SourceFileName &&
+                                  dbf.SourcePath == file.SourcePath &&
+                                  !string.IsNullOrEmpty(dbf.FileName));
+
+                // No duplicate names
+                if (duplicateCount == 0)
+                    return file.SourceFileName;
+
+                // We want to start from +1 higher
+                // file.txt => file (2).txt
+                duplicateCount += 1;
+
+                var fileName = Path.GetFileNameWithoutExtension(file.SourceFileName);
+                var ext = Path.GetExtension(file.SourceFileName);
+                return $"{fileName} ({duplicateCount}){ext}";
             }
-
-            if (result.Length == 0)
-                return "/";
-            else
-                return result.ToString();
         }
-
     }
 }

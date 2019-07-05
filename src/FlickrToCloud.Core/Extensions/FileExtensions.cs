@@ -2,6 +2,8 @@
 using System.Linq;
 using FlickrToCloud.Contracts;
 using FlickrToCloud.Contracts.Models;
+using FlickrToCloud.Common;
+using File = FlickrToCloud.Contracts.Models.File;
 
 namespace FlickrToCloud.Core.Extensions
 {
@@ -55,6 +57,11 @@ namespace FlickrToCloud.Core.Extensions
                     await db.SaveChangesAsync();
                 }
             }
+        }
+
+        public static string LogString(this File file)
+        {
+            return $"{PathUtils.CombinePath(file.SourcePath, file.FileName)} ({file.Id})";
         }
     }
 }
