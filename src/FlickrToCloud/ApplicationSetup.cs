@@ -23,7 +23,7 @@ namespace FlickrToCloud
             var logPath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "Logs", "FlickrToCloud-{Date}.log");
 
             var logConfiguration = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
+                .MinimumLevel.Information()
                 .Enrich.WithThreadId()
                 .Enrich.WithExceptionDetails()
                 .WriteTo.RollingFile(logPath, outputTemplate: fileOutputTemplate);
