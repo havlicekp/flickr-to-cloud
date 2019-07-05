@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FlickrToCloud.Common\FlickrToCloud.Common.csproj" />
     <ProjectReference Include="..\FlickrToCloud.Contracts\FlickrToCloud.Contracts.csproj" />
   </ItemGroup>
 
