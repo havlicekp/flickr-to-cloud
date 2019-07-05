@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using FlickrToCloud.Clouds.Flickr;
@@ -10,6 +11,7 @@ using Moq;
 using MvvmCross;
 using MvvmCross.IoC;
 using MvvmCross.ViewModels;
+using File = FlickrToCloud.Contracts.Models.File;
 
 namespace FlickrToCloud.Core
 {
@@ -25,6 +27,7 @@ namespace FlickrToCloud.Core
         {
             Mvx.IoCProvider.ConstructAndRegisterSingleton<IFlickrClient, FlickrClient>();
             Mvx.IoCProvider.RegisterType<ICloudFileSystemFactory, CloudFileSystemFactory>();
+            Mvx.IoCProvider.RegisterType<IUploaderFactory, UploaderFactory>();
             Mvx.IoCProvider.RegisterType<IDownloadService, DownloadService>();
             Mvx.IoCProvider.LazyConstructAndRegisterSingleton<ICloudCopyService, CloudCopyService>();
             Mvx.IoCProvider.RegisterSingleton<IAuthenticationCallbackDispatcher>(new AuthenticationCallbackDispatcher());
@@ -69,7 +72,7 @@ namespace FlickrToCloud.Core
 
 
             var mockedOneDrive = new Mock<ICloudFileSystem>();
-            mockedOneDrive.Setup(x => x.UploadFileFromUrlAsync(It.IsAny<string>(), It.IsAny<File>(), It.IsAny<CancellationToken>())).Returns(async () =>
+            mockedOneDrive.Setup(x => x.UploadFileFromUrlAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(async () =>
             {
                 await Task.Delay(2000);
                 return

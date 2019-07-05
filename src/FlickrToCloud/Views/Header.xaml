@@ -9,7 +9,7 @@
     d:DesignWidth="400">
 
     <StackPanel Orientation="Horizontal" Background="{ThemeResource SystemChromeMediumColor}" >
-        <Image Stretch="UniformToFill" Height="42" Width="42" Margin="22 22 20 22" Source="/Assets/logo.png"></Image>
+        <Image Stretch="UniformToFill" Height="42" Width="42" Margin="22 22 20 22" Source="/Assets/LogoGradTransBg512x512.png" />
         <TextBlock 
             HorizontalTextAlignment="Center" 
             VerticalAlignment="Center"
