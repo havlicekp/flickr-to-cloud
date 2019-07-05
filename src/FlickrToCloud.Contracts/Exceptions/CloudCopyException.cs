@@ -22,6 +22,11 @@ namespace FlickrToCloud.Contracts.Exceptions
         {
         }
 
+        public CloudCopyException(string message, ILogger log) : base(message)
+        {
+            log.Error(message);
+        }
+
         public CloudCopyException(string message, Exception innerException, ILogger log) : base(message, innerException)
         {
             log.Error(innerException, message);

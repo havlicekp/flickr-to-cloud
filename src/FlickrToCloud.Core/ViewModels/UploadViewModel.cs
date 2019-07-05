@@ -419,7 +419,7 @@ namespace FlickrToCloud.Core.ViewModels
 
         private async Task RetryUpload()
         {
-            await StartUpload(true);
+            await StartUpload();
         }
 
         private async Task NewSession()
@@ -462,7 +462,7 @@ namespace FlickrToCloud.Core.ViewModels
 
         #endregion
 
-        private async Task StartUpload(bool retryFailed = false)
+        private async Task StartUpload()
         {
             _cancellationTokenSource = new CancellationTokenSource();
 
@@ -471,15 +471,18 @@ namespace FlickrToCloud.Core.ViewModels
                 InProgress = true;
                 Paused = Pausing = HasError = SourceIsEmpty = false;
 
-                var result = await _copyService.Copy(_setup, retryFailed, _cancellationTokenSource.Token);
+                var result = await _copyService.Copy(_setup, _cancellationTokenSource.Token);
                 if (result)
                 {
                     await CheckStatus();
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e)
             {
-                HandleCancellation();
+                if (_cancellationTokenSource.IsCancellationRequested)
+                    HandleCancellation();
+                else
+                    HandleError(e);
             }
             catch (NothingToUploadException)
             {
@@ -534,7 +537,7 @@ namespace FlickrToCloud.Core.ViewModels
             if (_paused)
             {
                 Pausing = false;
-                Paused = true;                
+                Paused = true;
                 HeadingMessage = "Paused";
                 StatusMessage = "The session is paused. Press Resume to resume the upload";
             }
@@ -543,7 +546,8 @@ namespace FlickrToCloud.Core.ViewModels
                 Cancelling = false;
                 Cancelled = true;
                 HeadingMessage = "Cancelled!";
-                StatusMessage = $"The current session was cancelled. Any files already uploaded to {_setup.Destination.Name} need to be cleared manually. Click New Session to start a new session";
+                StatusMessage =
+                    $"The current session was cancelled. Any files already uploaded to {_setup.Destination.Name} need to be cleared manually. Click New Session to start a new session";
             }
         }
 

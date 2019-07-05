@@ -45,7 +45,7 @@ namespace FlickrToCloud.Clouds.Flickr
                         result.Add(new File
                         {
                             SourceId = photo.Id,
-                            FileName = ReplaceInvalidPathChars($"{photo.Title}{Path.GetExtension(photo.Url)}", "_"),
+                            SourceFileName = ReplaceInvalidPathChars($"{photo.Title}{Path.GetExtension(photo.Url)}", "_"),
                             SourceUrl = photo.Url,
                             SourcePath = "/" + ReplaceInvalidPathChars(photo.AlbumName, "_")
                         });
@@ -71,7 +71,7 @@ namespace FlickrToCloud.Clouds.Flickr
                     result.Add(new File
                     {
                         SourceId = photo.Id,
-                        FileName = ReplaceInvalidPathChars($"{photo.Title}{Path.GetExtension(photo.Url)}", "_"),
+                        SourceFileName = ReplaceInvalidPathChars($"{photo.Title}{Path.GetExtension(photo.Url)}", "_"),
                         SourceUrl = photo.Url,
                         SourcePath = "/"
                     });
@@ -115,7 +115,7 @@ namespace FlickrToCloud.Clouds.Flickr
             }
         }
 
-        public Task<string> UploadFileFromUrlAsync(string path, File file, CancellationToken ct)
+        public Task<string> UploadFileFromUrlAsync(string path, string fileName, string sourceUrl, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
@@ -150,7 +150,7 @@ namespace FlickrToCloud.Clouds.Flickr
             throw new NotImplementedException();
         }
 
-        public Task CopyFileAsync(string fromPath, string toPath, CancellationToken ct)
+        public Task CopyFileAsync(string fromPath, string toPath, string fileName, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
