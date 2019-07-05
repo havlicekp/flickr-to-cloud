@@ -3,14 +3,16 @@ using System;
 using FlickrToCloud.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace FlickrToCloud.Contracts.Migrations
 {
     [DbContext(typeof(CloudCopyContext))]
-    partial class CloudCopyContextModelSnapshot : ModelSnapshot
+    [Migration("20190705105410_AddSourceFileNameToFiles")]
+    partial class AddSourceFileNameToFiles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
