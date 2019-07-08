@@ -51,58 +51,6 @@ namespace FlickrToCloud.Clouds.OneDrive
             _storageService = storageService;
         }
 
-        public async Task<bool> HandleAuthenticationCallback(Uri callbackUri)
-        {
-            if (callbackUri.AbsoluteUri.StartsWith(_callbackUrl))
-            {
-                _log.Information($"Authentication callback for OneDrive");
-                _log.Verbose(callbackUri.AbsoluteUri);
-
-                try
-                {
-                    var parts = HttpUtility.ParseQueryString(callbackUri.AbsoluteUri);
-                    var code = parts[0];
-
-                    _token = await OneDriveClient.ExchangeCodeForAccessTokenAsync(code, _clientId, null, _callbackUrl);
-                    _isAuthenticated = true;
-
-                    InitGraphClient();
-
-                    _log.Information("Successfully logged in OneDrive");
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    throw new CloudCopyException("Error logging into OneDrive", e, _log);
-                }
-            }
-
-            return false;
-        }
-
-        public Task<string> GetAuthenticationUrl()
-        {
-            try
-            {
-                _log.Information("Getting authentication URL for OneDrive");
-
-                var url = Task.FromResult(OneDriveClient.GetRequestUrl(_clientId, _scope, _callbackUrl));
-
-                _log.Verbose($"Authentication URL for OneDrive: {url.Result}");
-
-                return url;
-            }
-            catch (Exception e)
-            {
-                throw new CloudCopyException("Error during OneDrive authentication", e, _log);
-            }
-        }
-
-        public async Task UploadFileAsync(string destinationFilePath, string localFileName, CancellationToken ct)
-        {
-            await UploadFileWithChunkedProvider(destinationFilePath, localFileName, ct);
-        }
-
         public async Task<string> UploadFileFromUrlAsync(string destinationPath, string fileName, string sourceUrl, CancellationToken ct)
         {
             _log.Information($"Uploading {sourceUrl} to {destinationPath}\\{fileName}");
@@ -129,6 +77,12 @@ namespace FlickrToCloud.Clouds.OneDrive
 
                 return response.Headers.Location.ToString();
             }
+        }
+
+        public async Task UploadFileAsync(string destinationFilePath, string localFileName, CancellationToken ct)
+        {
+            _log.Information($"Uploading local file {localFileName} to {destinationFilePath}");
+            await UploadFileWithChunkedProvider(destinationFilePath, localFileName, ct);
         }
 
         public async Task<bool> FolderExistsAsync(string folder, CancellationToken ct)
@@ -260,7 +214,6 @@ namespace FlickrToCloud.Clouds.OneDrive
 
         private async Task UploadFileWithChunkedProvider(string destinationFilePath, string localFileName, CancellationToken ct)
         {
-            
             var uploadRequest = _graphClient.Me.Drive.Root.ItemWithPath(destinationFilePath).CreateUploadSession().Request().WithMaxRetry(8);
             uploadRequest.RequestBody.Item = new DriveItemUploadableProperties() { AdditionalData = new Dictionary<string, object>() };
             uploadRequest.RequestBody.Item.AdditionalData.Add("@microsoft.graph.conflictBehavior", "replace");
@@ -376,6 +329,53 @@ namespace FlickrToCloud.Clouds.OneDrive
                 {
                     throw new CloudCopyException("Error talking to OneDrive. Are your connected to the internet?", e, _log);
                 }
+            }
+        }
+
+        public async Task<bool> HandleAuthenticationCallback(Uri callbackUri)
+        {
+            if (callbackUri.AbsoluteUri.StartsWith(_callbackUrl))
+            {
+                _log.Information($"Authentication callback for OneDrive");
+                _log.Verbose(callbackUri.AbsoluteUri);
+
+                try
+                {
+                    var parts = HttpUtility.ParseQueryString(callbackUri.AbsoluteUri);
+                    var code = parts[0];
+
+                    _token = await OneDriveClient.ExchangeCodeForAccessTokenAsync(code, _clientId, null, _callbackUrl);
+                    _isAuthenticated = true;
+
+                    InitGraphClient();
+
+                    _log.Information("Successfully logged in OneDrive");
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    throw new CloudCopyException("Error logging into OneDrive", e, _log);
+                }
+            }
+
+            return false;
+        }
+
+        public Task<string> GetAuthenticationUrl()
+        {
+            try
+            {
+                _log.Information("Getting authentication URL for OneDrive");
+
+                var url = Task.FromResult(OneDriveClient.GetRequestUrl(_clientId, _scope, _callbackUrl));
+
+                _log.Verbose($"Authentication URL for OneDrive: {url.Result}");
+
+                return url;
+            }
+            catch (Exception e)
+            {
+                throw new CloudCopyException("Error during OneDrive authentication", e, _log);
             }
         }
 

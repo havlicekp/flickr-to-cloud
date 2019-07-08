@@ -8,11 +8,11 @@
   IgnorableNamespaces="uap mp">
 
   <Identity
-    Name="7f261b07-e33d-4e81-8ea3-40341ff95cc5"
-    Publisher="CN=havli"
-    Version="1.0.0.0" />
+    Name="4833PetrHavlicek.FlickrToCloud"
+    Publisher="CN=634C398E-C5CF-4127-B114-4149B1C54AC8"
+    Version="1.0.7.0" />
 
-  <mp:PhoneIdentity PhoneProductId="7f261b07-e33d-4e81-8ea3-40341ff95cc5" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <mp:PhoneIdentity PhoneProductId="d88f07ae-aa30-4849-a33d-cc56ea62b11a" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>Flickr To Cloud</DisplayName>

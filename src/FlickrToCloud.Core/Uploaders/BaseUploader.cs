@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using FlickrToCloud.Common;
 using FlickrToCloud.Contracts;
 using FlickrToCloud.Contracts.Interfaces;
 using FlickrToCloud.Contracts.Models;
@@ -77,7 +78,7 @@ namespace FlickrToCloud.Core.Uploaders
             }
             catch (Microsoft.Graph.ServiceException e)
             {
-                TryHandleGraphCancellation(e, $"{name} cancelled for ({file.LogString()})");
+                GraphUtils.TryHandleGraphCancellation(e, $"{name} cancelled for ({file.LogString()})", _log);
                 throw;
             }
             catch (Exception e)

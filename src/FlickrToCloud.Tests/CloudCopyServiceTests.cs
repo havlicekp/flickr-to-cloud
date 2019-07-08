@@ -10,7 +10,6 @@ using FlickrToCloud.Core;
 using FlickrToCloud.Core.Services;
 using FlickrToCloud.Core.Uploaders;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Moq;
 using MvvmCross.IoC;
 using MvvmCross.Tests;
@@ -74,12 +73,16 @@ namespace FlickrToCloud.Tests
             using (var db = new CloudCopyContext())
             {
                 var files = db.Files
-                    .Where(f => f.SourcePath == "/" && f.SourceFileName == "DSC05801.jpg")
+                    .Where(f => f.SourcePath == "/" && f.SourceFileName.StartsWith("DSC05801", StringComparison.CurrentCultureIgnoreCase))
                     .OrderByDescending(f => f.FileName)
                     .ToArray();
 
-                Assert.True(files[0].FileName == "DSC05801.jpg");
-                Assert.True(files[1].FileName == "DSC05801 (2).jpg");
+                
+                Assert.True(files[0].FileName == "dsc05801 (3).jpg");
+                Assert.True(files[1].FileName == "dsc05801 (2) (2).jpg");
+                Assert.True(files[2].FileName == "DSC05801.jpg");
+                Assert.True(files[3].FileName == "DSC05801 (2).jpg");
+                
             }
         }
 
@@ -94,7 +97,7 @@ namespace FlickrToCloud.Tests
 
             using (var db = new CloudCopyContext())
             {
-                Assert.True(db.Files.Count() == 5);
+                Assert.True(db.Files.Count() == 7);
             }
         }
 
@@ -124,6 +127,23 @@ namespace FlickrToCloud.Tests
                         SourceFileName = "DSC05801.jpg",
                         SourcePath = "/"
                     },
+                    new File
+                    {
+                        SourceUrl = @"https://farm2.staticflickr.com/1673/b.png",
+                        SourceId = "23195831082", 
+                        SourceFileName = "dsc05801.jpg", // <= same as previous file but the file name is in lowercase
+                                                         // => test for grouping by file name
+                        SourcePath = "/"
+                    },
+                    new File
+                    {
+                        SourceUrl = @"https://farm2.staticflickr.com/1673/b.png",
+                        SourceId = "23195831083",
+                        SourceFileName = "dsc05801 (2).jpg", // <= file with (2) already exists,
+                                                             // => unique file names should continue with 3
+                        SourcePath = "/"
+                    },
+
                     new File
                     {
                         SourceUrl = @"https://farm2.staticflickr.com/1673/b.png",
@@ -172,23 +192,7 @@ namespace FlickrToCloud.Tests
             var mockedStorageService = new Mock<IStorageService>();
             var mockedDownloadService = new Mock<IDownloadService>();
 
-            /*mockedOneDrive.Setup(x => x.CheckOperationStatusAsync(It.IsAny<File>(), It.IsAny<CancellationToken>())).Returns<string>(async (monitorUrl) =>
-            {
-                await Task.Delay(2000);
-                return new OperationStatus(20, true, "");
-            });*/
-            //mockedOneDrive.Setup(x => x.IsAuthenticated).Returns(true);
-            //mockedOneDrive.Setup(x => x.GetAuthenticationUrl()).Returns(Task.FromResult("about:blank"));
             _mockedOneDrive.Setup(x => x.Name).Returns("OneDrive");
-
-            /*var mockedCloudFactory = new Mock<ICloudFileSystemFactory>();
-            mockedCloudFactory.Setup(x => x.Create(It.Is<string>((s) => s == "onedrive"))).Returns(mockedOneDrive.Object);
-            mockedCloudFactory.Setup(x => x.Create(It.Is<string>((s) => s == "flickr"))).Returns(mockedFlickr.Object);
-            */
-            //Mvx.IoCProvider.RegisterSingleton(mockedCloudFactory.Object);
-            //Mvx.IoCProvider.RegisterSingleton<IAuthenticationCallbackDispatcher>(new AuthenticationCallbackDispatcher());
-
-            //Mvx.IoCProvider.ConstructAndRegisterSingleton<IFlickrClient, FlickrClient>();
 
             Ioc.RegisterSingleton(mockedStorageService.Object);
             Ioc.RegisterSingleton(mockedLog.Object);

@@ -5,15 +5,11 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:MvvmCross.Platforms.Uap.Views"
-    xmlns:converters="using:FlickrToCloud.Converters"
     xmlns:views1="using:FlickrToCloud.Views"
     xmlns:models="using:FlickrToCloud.Contracts.Models"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     >
-    <Page.Resources>
-        <converters:DateTimeConverter x:Name="DateTimeConverter" />
-    </Page.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -56,10 +52,10 @@
                             <ColumnDefinition Width="Auto"></ColumnDefinition>
                         </Grid.ColumnDefinitions>
                         <Image Grid.RowSpan="2" Grid.Column="0" x:Name="ToolkitLogo"                                
-                                       Width="18"
-                                       Height="18"
+                                       Width="24"
+                                       Height="24"
                                        Margin="0,0,16,0"
-                                       Source="ms-appx:///Assets/logo.png" />
+                                       Source="ms-appx:///Assets/LogoGradTransBg48x48.png" />
                         <TextBlock Grid.Column="1" Grid.Row="0" Text="{x:Bind}" />
                         <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Vertical">
                             <TextBlock Foreground="{StaticResource SystemControlForegroundBaseMediumBrush}">

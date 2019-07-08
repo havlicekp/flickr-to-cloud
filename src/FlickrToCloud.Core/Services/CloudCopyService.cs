@@ -135,7 +135,7 @@ namespace FlickrToCloud.Core.Services
             }
             catch (Microsoft.Graph.ServiceException e)
             {
-                TryHandleGraphCancellation(e, "ReadSource cancelled");
+                GraphUtils.TryHandleGraphCancellation(e, "ReadSource cancelled", _log);
                 throw;
             }
             catch (Exception e)
@@ -175,15 +175,6 @@ namespace FlickrToCloud.Core.Services
                 ct.ThrowIfCancellationRequested();
                 var destinationFolder = PathUtils.CombinePath(setup.Session.DestinationFolder, folder);
                 await setup.Destination.CreateFolderAsync(destinationFolder, ct);
-            }
-        }
-
-        private void TryHandleGraphCancellation(Microsoft.Graph.ServiceException e, string message)
-        {
-            _log.Error(e, "Microsoft Graph exception");
-            if (e.InnerException != null && (e.InnerException is TaskCanceledException || e.InnerException is OperationCanceledException))
-            {
-                throw new OperationCanceledException();
             }
         }
 
@@ -231,7 +222,7 @@ namespace FlickrToCloud.Core.Services
             }
             catch (Microsoft.Graph.ServiceException e)
             {
-                TryHandleGraphCancellation(e, "Checking file status cancelled");
+                GraphUtils.TryHandleGraphCancellation(e, "Checking file status cancelled", _log);
                 throw;
             }
             catch (CloudCopyException)
@@ -253,26 +244,31 @@ namespace FlickrToCloud.Core.Services
 
         protected string GetUniqueFileName(File file, File[] files)
         {
-            using (var db = new CloudCopyContext())
+            // Find number of duplicate file names under a folder
+            // => use this number to construct unique file name like 'file (2).jpg'
+            var duplicateCount = files
+                .Count(dbf =>
+                    string.Equals(dbf.FileName, file.SourceFileName, StringComparison.CurrentCultureIgnoreCase) &&
+                    dbf.SourcePath == file.SourcePath &&
+                    !string.IsNullOrEmpty(dbf.FileName));
+
+            // No duplicate names
+            if (duplicateCount == 0)
+                return file.SourceFileName;
+
+            var fileName = Path.GetFileNameWithoutExtension(file.SourceFileName);
+            var ext = Path.GetExtension(file.SourceFileName);
+
+            // Increase file name counter until it is unique
+            while (true)
             {
-                // Find number of duplicate file names under a folder
-                // => use this number to construct unique file name like 'file (2).jpg'
-                var duplicateCount = files
-                    .Count(dbf => dbf.SourceFileName == file.SourceFileName &&
-                                  dbf.SourcePath == file.SourcePath &&
-                                  !string.IsNullOrEmpty(dbf.FileName));
-
-                // No duplicate names
-                if (duplicateCount == 0)
-                    return file.SourceFileName;
-
                 // We want to start from +1 higher
                 // file.txt => file (2).txt
                 duplicateCount += 1;
-
-                var fileName = Path.GetFileNameWithoutExtension(file.SourceFileName);
-                var ext = Path.GetExtension(file.SourceFileName);
-                return $"{fileName} ({duplicateCount}){ext}";
+                var newFileName = $"{fileName} ({duplicateCount}){ext}";
+                if (!files.Any(dbf =>
+                    string.Equals(dbf.FileName, newFileName, StringComparison.CurrentCultureIgnoreCase)))
+                    return newFileName;
             }
         }
     }
