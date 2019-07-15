@@ -10,7 +10,7 @@
   <Identity
     Name="4833PetrHavlicek.FlickrToCloud"
     Publisher="CN=634C398E-C5CF-4127-B114-4149B1C54AC8"
-    Version="1.0.7.0" />
+    Version="1.0.9.0" />
 
   <mp:PhoneIdentity PhoneProductId="d88f07ae-aa30-4849-a33d-cc56ea62b11a" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
