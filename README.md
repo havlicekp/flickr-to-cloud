@@ -1,11 +1,11 @@
 # Flickr To Cloud
 Backup your Flickr albums and/or photo stream to a cloud storage. When available, photos can be also copied directly between Flickr and the cloud, without downloading them locally.
 
+![](https://github.com/havlicekp/flickr-to-cloud/blob/master/images/mockup4.jpg)
+
 <p align="center">
 <a href="//www.microsoft.com/store/apps/9N95CQ7CN70P?cid=storebadge&ocid=badge"><img src="https://assets.windowsphone.com/85864462-9c82-451e-9355-a3d5f874397a/English_get-it-from-MS_InvariantCulture_Default.png" height="50" /></a>
   </p>
-
-![](https://github.com/havlicekp/flickr-to-cloud/blob/master/images/mockup4.jpg)
 
 ## Technical details
 * Windows Store application (UWP project + .NET Standard 2.0 assemblies)
