@@ -3,10 +3,6 @@ Backup your Flickr albums and/or photo stream to a cloud storage. When available
 
 ![](https://github.com/havlicekp/flickr-to-cloud/blob/master/images/mockup4.jpg)
 
-<p align="center">
-<a href="//www.microsoft.com/store/apps/9N95CQ7CN70P?cid=storebadge&ocid=badge"><img src="https://assets.windowsphone.com/85864462-9c82-451e-9355-a3d5f874397a/English_get-it-from-MS_InvariantCulture_Default.png" height="50" /></a>
-  </p>
-
 ## Technical details
 * Windows Store application (UWP project + .NET Standard 2.0 assemblies)
 * Utilizing MVVM pattern to separate GUI (XAML) code from business logic ([MVVMCross framework](https://www.mvvmcross.com/))
@@ -17,3 +13,7 @@ Backup your Flickr albums and/or photo stream to a cloud storage. When available
 * Logging using [Serilog](https://serilog.net/)
 * Unit tests using [xUnit](https://xunit.net/) and [Moq](https://github.com/moq/moq4) 
 * Adapts to light/dark Windows mode 
+
+<p align="center">
+<a href="//www.microsoft.com/store/apps/9N95CQ7CN70P?cid=storebadge&ocid=badge"><img src="https://assets.windowsphone.com/85864462-9c82-451e-9355-a3d5f874397a/English_get-it-from-MS_InvariantCulture_Default.png" height="50" /></a>
+  </p>
