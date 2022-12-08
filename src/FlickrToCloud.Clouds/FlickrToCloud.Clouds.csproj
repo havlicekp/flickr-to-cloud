@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Graph" Version="1.16.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="Open.OAuth" Version="1.0.0" />
     <PackageReference Include="Open.OAuth2" Version="1.0.0" />
     <PackageReference Include="Open.OneDrive" Version="1.0.0" />
